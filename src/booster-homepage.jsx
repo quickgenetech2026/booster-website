@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { getProductImage as _getImageFromMap } from "./data/imageLoader.js";
 import ALL_PRODUCTS from "./data/all-products.json";
+import { buildProductIndex, productPath, readRoute } from "./product-routes.js";
 import "./BorderGlow.css";
 import { TreemapTypography } from "./TreemapTypography.jsx";
 
@@ -253,6 +254,8 @@ function getProductImage(sku) {
 }
 
 const PAGE_SIZE = 20;
+const PRODUCT_INDEX = buildProductIndex(ALL_PRODUCTS);
+const SITE_URL = "https://tflabservice.com";
 
 // ═══════ Animated Counter (Mac style) ═══════
 function AnimNum({ value, suffix = "", duration = 2000 }) {
@@ -1771,7 +1774,9 @@ function ProductCatalogSection({ lang, initialCat, search, onViewDetail }) {
                   </td>
                   <td style={tdS}><span style={{ fontSize: 11, background: T.redLight, padding: "2px 7px", borderRadius: 4, color: T.red }}>{tCat(lang, p.cat)}</span></td>
                   <td style={tdS}><span style={{ fontSize: 12, color: T.textSecondary }}>{tSpec(lang, p.spec)||"—"}</span></td>
-                  <td style={tdS}><button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button></td>
+                  <td style={tdS}>{productPath(p, PRODUCT_INDEX)
+                    ? <a href={productPath(p, PRODUCT_INDEX)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
+                    : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -1968,7 +1973,9 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
                   {getProductImage(r.sku) ? <img src={getProductImage(r.sku)} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, background: T.redLight }} /> : <span style={{ fontSize: 24 }}>{meta.icon}</span>}
                   <code style={{ fontSize: 10, color: T.red, background: T.redLight, padding: "1px 5px", borderRadius: 3 }}>{r.sku}</code>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: T.red, lineHeight: 1.3 }}>{tName(lang, r.name)||"—"}</div>
+                {productPath(r, PRODUCT_INDEX)
+                  ? <a href={productPath(r, PRODUCT_INDEX)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(r);}}} style={{ display:"block", fontSize:12, fontWeight:600, color:T.red, lineHeight:1.3, textDecoration:"none" }}>{tName(lang, r.name)||"—"}</a>
+                  : <div style={{ fontSize: 12, fontWeight: 600, color: T.red, lineHeight: 1.3 }}>{tName(lang, r.name)||"—"}</div>}
               </div>
             </GlassCard>
           ))}
@@ -1983,10 +1990,10 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
 // ═══════ MAIN APP ═══════
 export default function BoosterHomepage() {
   const [lang, setLang] = useState("zh");
-  const [section, setSection] = useState("home");
+  const [section, setSection] = useState(() => readRoute(window.location.pathname, PRODUCT_INDEX).section);
   const [search, setSearch] = useState("");
   const [productCat, setProductCat] = useState(null);
-  const [detailProduct, setDetailProduct] = useState(null);
+  const [detailProduct, setDetailProduct] = useState(() => readRoute(window.location.pathname, PRODUCT_INDEX).product);
 
   // ── Auth state ──
   const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem("bsd_user") || "null"); } catch { return null; } });
@@ -1997,9 +2004,49 @@ export default function BoosterHomepage() {
   const handleRegisterSuccess = useCallback((u) => { handleLoginSuccess(u); }, [handleLoginSuccess]);
   const handleLogout = useCallback(() => { localStorage.removeItem("bsd_user"); setUser(null); }, []);
 
-  const go = useCallback((s) => { setSection(s); setDetailProduct(null); if(s!=="products"){ setProductCat(null); setSearch(""); } window.scrollTo?.({top:0,behavior:"smooth"}); }, []);
-  const goProducts = useCallback((cat) => { setProductCat(cat||null); setSection("products"); setDetailProduct(null); window.scrollTo?.({top:0,behavior:"smooth"}); }, []);
-  const goDetail = useCallback((p) => { setDetailProduct(p); setSection("products"); window.scrollTo?.({top:0,behavior:"smooth"}); }, []);
+  useEffect(() => {
+    const onPopState = () => {
+      const route = readRoute(window.location.pathname, PRODUCT_INDEX);
+      setSection(route.section);
+      setDetailProduct(route.product);
+      setProductCat(null);
+      setSearch("");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    const path = detailProduct && productPath(detailProduct, PRODUCT_INDEX);
+    const canonical = `${SITE_URL}${path || (section === "products" ? "/products/" : "/")}`;
+    const title = path ? `${detailProduct.name || detailProduct.sku} · ${detailProduct.sku} | 博仕达生物`
+      : section === "products" ? "产品中心 | 博仕达生物" : "博仕达生物 - 一站式实验室解决方案 | 分子生物学试剂 | 实验耗材 | 化学试剂";
+    document.title = title;
+    document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
+    const description = path ? `${detailProduct.name || detailProduct.sku}，货号 ${detailProduct.sku}，规格 ${detailProduct.spec || "请咨询"}。博仕达生物产品信息与询价。`
+      : section === "products" ? "浏览博仕达生物实验耗材、试剂与质控产品，按货号查看产品信息并询价。"
+      : "博仕达生物 - 一站式实验室解决方案提供商，提供高质量的国产化替代方案，涵盖分子生物学、实验耗材、化学试剂、质控分析工具酶和质控试剂盒等产品。";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", description);
+  }, [section, detailProduct]);
+
+  const go = useCallback((s) => {
+    const path = s === "products" ? "/products/" : "/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    setSection(s); setDetailProduct(null);
+    if(s!=="products"){ setProductCat(null); setSearch(""); }
+    window.scrollTo?.({top:0,behavior:"smooth"});
+  }, []);
+  const goProducts = useCallback((cat) => {
+    if (window.location.pathname !== "/products/") window.history.pushState({}, "", "/products/");
+    setProductCat(cat||null); setSection("products"); setDetailProduct(null);
+    window.scrollTo?.({top:0,behavior:"smooth"});
+  }, []);
+  const goDetail = useCallback((p) => {
+    const path = productPath(p, PRODUCT_INDEX) || "/products/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    setDetailProduct(p); setSection("products");
+    window.scrollTo?.({top:0,behavior:"smooth"});
+  }, []);
 
   return (
     <div style={{ fontFamily: T.font, color: T.red, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: "transparent", position: "relative" }}>
@@ -2033,7 +2080,8 @@ export default function BoosterHomepage() {
       </>}
 
       {section === "products" && !detailProduct && <ProductCatalogSection lang={lang} initialCat={productCat} search={search} onViewDetail={goDetail} />}
-      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => setDetailProduct(null)} onViewDetail={goDetail} />}
+      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => goProducts(null)} onViewDetail={goDetail} />}
+      {section === "notfound" && <main style={{ maxWidth: 1000, margin: "48px auto", padding: 32 }}><h1>页面未找到</h1><a href="/">返回首页</a></main>}
       {section === "solutions" && <><SolutionsSection lang={lang} /><StatsBar lang={lang} /></>}
       {section === "peptideqc" && <PeptideQCSection lang={lang} onContact={() => go("contact")} onProducts={() => go("products")} />}
       {section === "catmap" && <ProductMapSection lang={lang} onCategoryClick={(catId) => goProducts(catId)} />}

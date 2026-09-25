@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-seo-pages.mjs",
+    "test": "node --test tests/*.test.mjs",
     "preview": "vite preview",
     "image:requirements": "node scripts/generate-image-requirements.js",
     "image:rename": "node scripts/batch-rename.js rename",

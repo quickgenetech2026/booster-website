@@ -1,0 +1,38 @@
+[
+  {
+    "id": "2026-pvdf-new",
+    "active": true,
+    "date": "2026.11",
+    "badgeZh": "新品上线",
+    "badgeEn": "NEW",
+    "textZh": "PVDF 针式过滤器全规格新品上架，支持国产替代与样品申请",
+    "textEn": "New PVDF Syringe Filter series now available — samples on request",
+    "ctaZh": "查看新品",
+    "ctaEn": "View New",
+    "action": { "type": "search", "query": "PVDF" }
+  },
+  {
+    "id": "2026-peptide-qc",
+    "active": true,
+    "date": "2026.11",
+    "badgeZh": "方案上新",
+    "badgeEn": "UPDATE",
+    "textZh": "多肽 QC 全链质控解决方案发布 — 覆盖 FDA 0.5% 杂质与 EMA 正交酶切合规",
+    "textEn": "Peptide QC Full-Chain Solution released — FDA 0.5% & EMA compliant",
+    "ctaZh": "查看方案",
+    "ctaEn": "Explore",
+    "action": { "type": "section", "section": "peptideqc" }
+  },
+  {
+    "id": "2026-catalog-upgrade",
+    "active": true,
+    "date": "2026.11",
+    "badgeZh": "产品更新",
+    "badgeEn": "CATALOG",
+    "textZh": "2026 国产替代系列全面升级，现已收录 1,990 款实验耗材与科研试剂",
+    "textEn": "2026 Domestic Alternative Series upgraded — 1,990+ lab SKUs in catalog",
+    "ctaZh": "浏览目录",
+    "ctaEn": "Browse",
+    "action": { "type": "section", "section": "products" }
+  }
+]

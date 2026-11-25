@@ -7,6 +7,7 @@ import {
   LayoutGrid, List, Layers, Activity, ShoppingCart, Plus, Check, Trash2, ChevronDown, HelpCircle,
 } from "lucide-react";
 import { loadCatalog, getCachedCatalog, resolveProductImage } from "./data/catalogLoader.js";
+import ANNOUNCEMENTS from "./data/announcements.json";
 import { productPath, readRoute, sectionPath, categoryPath, SLUG_TO_CATEGORY } from "./product-routes.js";
 import "./BorderGlow.css";
 import { TreemapTypography, Pretext } from "./TreemapTypography.jsx";
@@ -115,29 +116,25 @@ function CatIcon({ cat, size = 16, color = T.red }) {
 
 // ─── Liquid Glass 样式常量 ────────────────────────────────────────
 const LG = {
-  // 主色：红色玻璃
+  // 主色：沉稳博仕达深红
   primary: {
-    background: "linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.14) 100%), rgba(200,16,46,0.68)",
-    backdropFilter: "blur(28px) saturate(200%)",
-    WebkitBackdropFilter: "blur(28px) saturate(200%)",
-    border: "1px solid rgba(255,255,255,0.42)",
-    boxShadow: "inset 0 1.5px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(0,0,0,0.10), 0 8px 32px rgba(200,16,46,0.28), 0 2px 8px rgba(0,0,0,0.08)",
+    background: "linear-gradient(180deg, #D31332 0%, #B00E28 100%)",
+    border: "1px solid rgba(155,0,35,0.35)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 6px 18px rgba(200,16,46,0.24), 0 1px 3px rgba(15,23,42,0.08)",
     color: "#fff",
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-  },
-  // 幽灵：透明玻璃
-  ghost: {
-    background: "linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.18) 100%)",
-    backdropFilter: "blur(24px) saturate(180%)",
-    WebkitBackdropFilter: "blur(24px) saturate(180%)",
-    border: "1px solid rgba(200,16,46,0.28)",
-    boxShadow: "inset 0 1.5px 0 rgba(255,255,255,0.70), inset 0 -1px 0 rgba(200,16,46,0.06), 0 4px 16px rgba(0,0,0,0.06)",
-    color: "#C8102E",
     fontWeight: 600,
     cursor: "pointer",
-    transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+    transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
+  },
+  // 幽灵：纯净白底描边
+  ghost: {
+    background: "#FFFFFF",
+    border: "1px solid rgba(200,16,46,0.28)",
+    boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
+    color: "#B00E28",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
   },
   // 悬停时通用 delta
   hoverOn:  (el) => { el.style.transform = "translateY(-2px) scale(1.025)"; el.style.filter = "brightness(1.08)"; },
@@ -342,19 +339,113 @@ function GlassCard({ children, style, hover = true }) {
 
 // ═══════ SECTIONS ═══════
 
-function TopBar({ lang, setLang }) {
-  return (
-    <div className="bsd-topbar" style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.94)", fontSize: "clamp(11px, 1.1vw, 13px)", padding: "7px 16px", fontFamily: T.font, textAlign: "center", position: "relative" }}>
-      <span style={{ fontWeight: 500, letterSpacing: 0.3, display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <Sparkles size={13} strokeWidth={2.2} />
-        {lang === "zh" ? "2026 新品发布 — 国产替代系列全面升级" : "2026 New Products — Domestic Alternative Series Fully Upgraded"}
-      </span>
-      <div className="bsd-topbar-lang" style={{ position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)", display: "flex", gap: 2 }}>
+function TopBar({ lang, setLang, onAction }) {
+  const items = useMemo(() => (ANNOUNCEMENTS || []).filter(a => a && a.active !== false), []);
+  const latestKey = items.map(a => a.id).join("|");
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem("bsd_dismissed_notice") === latestKey; } catch { return false; }
+  });
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (items.length <= 1 || paused) return;
+    const timer = setInterval(() => setIdx(i => (i + 1) % items.length), 5000);
+    return () => clearInterval(timer);
+  }, [items.length, paused]);
+
+  const current = items[idx % Math.max(1, items.length)];
+  const zh = lang === "zh";
+
+  if (!current || dismissed) {
+    return (
+      <div style={{ background: "#9B0023", padding: "5px 24px", display: "flex", justifyContent: "flex-end", gap: 4, fontFamily: T.font }}>
         {["zh","en"].map(l => (
-          <button key={l} onClick={() => setLang(l)} style={{ background: lang===l ? "linear-gradient(145deg,rgba(255,255,255,0.30),rgba(255,255,255,0.12))" : "transparent", backdropFilter: lang===l ? "blur(12px)" : "none", color: "#fff", border: lang===l ? "1px solid rgba(255,255,255,0.40)" : "none", borderRadius: 6, padding: "2px 10px", fontSize: 11, cursor: "pointer", fontFamily: T.font, fontWeight: lang===l ? 700 : 400, boxShadow: lang===l ? "inset 0 1px 0 rgba(255,255,255,0.50), 0 2px 6px rgba(0,0,0,0.10)" : "none", transition: "all 0.2s" }}>
+          <button key={l} onClick={() => setLang(l)} style={{ background: lang===l ? "rgba(255,255,255,0.24)" : "transparent", color: "#fff", border: lang===l ? "1px solid rgba(255,255,255,0.4)" : "none", borderRadius: 6, padding: "2px 10px", fontSize: 11, cursor: "pointer", fontFamily: T.font, fontWeight: lang===l ? 700 : 400 }}>
             {l === "zh" ? "中文" : "EN"}
           </button>
         ))}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="bsd-topbar"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      style={{
+        background: "linear-gradient(90deg, #8A001E 0%, #C8102E 50%, #8A001E 100%)",
+        color: "rgba(255,255,255,0.96)",
+        fontSize: "clamp(11px, 1.1vw, 13px)",
+        padding: "8px 110px 8px 16px",
+        fontFamily: T.font,
+        textAlign: "center",
+        position: "relative",
+        borderBottom: "1px solid rgba(255,255,255,0.14)",
+      }}
+    >
+      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.34)", borderRadius: 999, padding: "2px 9px", fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", boxShadow: "0 0 8px #4ADE80", animation: "blink 1.8s infinite" }} />
+          {zh ? current.badgeZh : current.badgeEn}
+        </span>
+        {current.date && (
+          <span style={{ fontSize: 11, opacity: 0.78, fontVariantNumeric: "tabular-nums" }}>{current.date}</span>
+        )}
+        <span style={{ fontWeight: 500, letterSpacing: 0.2 }}>
+          {zh ? current.textZh : current.textEn}
+        </span>
+        {current.action && (
+          <button
+            type="button"
+            onClick={() => onAction?.(current.action)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              background: "#FFFFFF", color: "#B00E28", border: "none",
+              borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 700,
+              cursor: "pointer", fontFamily: T.font, boxShadow: "0 1px 4px rgba(0,0,0,0.14)",
+            }}
+          >
+            {zh ? current.ctaZh : current.ctaEn} <ArrowRight size={11} />
+          </button>
+        )}
+        {items.length > 1 && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
+            {items.map((it, i) => (
+              <button
+                key={it.id}
+                type="button"
+                aria-label={`Notice ${i + 1}`}
+                onClick={() => setIdx(i)}
+                style={{
+                  width: i === idx ? 14 : 5, height: 5, borderRadius: 999, border: "none", padding: 0,
+                  cursor: "pointer", transition: "all 0.2s",
+                  background: i === idx ? "#FFFFFF" : "rgba(255,255,255,0.38)",
+                }}
+              />
+            ))}
+          </span>
+        )}
+      </div>
+
+      <div className="bsd-topbar-lang" style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 4 }}>
+        {["zh","en"].map(l => (
+          <button key={l} onClick={() => setLang(l)} style={{ background: lang===l ? "rgba(255,255,255,0.24)" : "transparent", color: "#fff", border: lang===l ? "1px solid rgba(255,255,255,0.40)" : "none", borderRadius: 6, padding: "2px 9px", fontSize: 11, cursor: "pointer", fontFamily: T.font, fontWeight: lang===l ? 700 : 400, transition: "all 0.2s" }}>
+            {l === "zh" ? "中文" : "EN"}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label={zh ? "关闭新品提醒" : "Dismiss notice"}
+          onClick={() => {
+            setDismissed(true);
+            try { sessionStorage.setItem("bsd_dismissed_notice", latestKey); } catch { /* ignore */ }
+          }}
+          style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 1, cursor: "pointer", padding: "2px 4px", marginLeft: 2 }}
+        >
+          ×
+        </button>
       </div>
     </div>
   );
@@ -912,37 +1003,49 @@ function DNACanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    let raf;
+    let raf = null;
     let tick = 0;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
-    const W = 360, H = 360;
+    const W = 420, H = 420;
     canvas.width  = W * DPR;
     canvas.height = H * DPR;
     canvas.style.width  = W + "px";
     canvas.style.height = H + "px";
     ctx.scale(DPR, DPR);
 
-    const N      = 52;    // points per helix
-    const AMP    = 64;    // oscillation radius
-    const TURNS  = 2.6;   // full helical turns visible
-    const HLEN   = 310;   // helix axis length (in rotated space)
+    // True 3D double-helix parameters
+    const RUNGS   = 22;      // clean base-pair spacing (~10 bp/turn)
+    const SAMPLES = 96;      // smooth backbone curve sampling
+    const AMP     = 66;      // helix radius
+    const TURNS   = 2.15;    // full helical turns
+    const HLEN    = 320;     // helix length along tilted axis
+    const PERSP   = 0.24;    // 3D perspective depth strength
 
-    // Returns position in the rotated (tilted) coordinate frame
-    const getP = (i, phase) => {
-      const t     = (i / N) * Math.PI * 2 * TURNS + tick + phase;
-      const y_rot = -HLEN / 2 + (i / N) * HLEN;
-      const x_rot = Math.sin(t) * AMP;
-      const depth = Math.sin(t); // -1 back → +1 front
-      return { x: x_rot, y: y_rot, depth };
-    };
-
-    const hexToRgb = h => [
-      parseInt(h.slice(1,3),16),
-      parseInt(h.slice(3,5),16),
-      parseInt(h.slice(5,7),16)
+    // Brand deep red + scientific titanium slate-blue
+    const STRANDS = [
+      { r: 200, g: 16,  b: 46,  hi: [255, 220, 228], dark: [130, 6, 26]  }, // Booster Red
+      { r: 30,  g: 64,  b: 148, hi: [215, 232, 255], dark: [15, 32, 82]  }, // Scientific Cobalt
     ];
-    const COLORS = ["#C8102E", "#8B0FC8"]; // red strand, purple strand
-    const RGBS   = COLORS.map(hexToRgb);
+
+    // Subtle floating ambient bio-particles
+    const particles = Array.from({ length: 16 }, (_, i) => ({
+      angle: (i / 16) * Math.PI * 2,
+      radius: 95 + (i % 4) * 24,
+      yOff: ((i * 53) % 280) - 140,
+      size: 1.4 + (i % 3) * 0.9,
+      speed: 0.004 + (i % 3) * 0.002,
+      red: i % 2 === 0,
+    }));
+
+    // True 3D projection: x = sin(t), z = cos(t) (90° out of phase!)
+    const project = (u, phase) => {
+      const t = u * Math.PI * 2 * TURNS + tick + phase;
+      const z = Math.cos(t);                 // -1 (back) → +1 (front)
+      const scale = 1 / (1 - z * PERSP);     // perspective magnification
+      const x = Math.sin(t) * AMP * scale;
+      const y = (-HLEN / 2 + u * HLEN) * (0.94 + 0.06 * scale);
+      return { x, y, z, scale };
+    };
 
     let isVisible = true;
     let isTabActive = !document.hidden;
@@ -962,80 +1065,159 @@ function DNACanvas() {
       if (!isVisible || !isTabActive) return;
       ctx.clearRect(0, 0, W, H);
 
-      // transparent — blends with page background
-
-      // ── Rotate canvas 45 degrees around centre ───────────────
       ctx.save();
       ctx.translate(W / 2, H / 2);
-      ctx.rotate(-Math.PI / 4);   // –45°  (top-left → bottom-right)
+      ctx.rotate(-Math.PI / 5.2); // elegant -35° scientific tilt
 
-      // ── Rungs ─────────────────────────────────────────────────
-      for (let i = 0; i <= N; i++) {
-        const p1 = getP(i, 0);
-        const p2 = getP(i, Math.PI);
-        const depth = (p1.depth + 1) / 2;          // 0–1
-        const alpha = 0.15 + depth * 0.30;
-        const gr = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
-        gr.addColorStop(0,   `rgba(200,16,46,${alpha})`);
-        gr.addColorStop(0.5, `rgba(220,100,190,${alpha * 0.55})`);
-        gr.addColorStop(1,   `rgba(139,15,200,${alpha})`);
+      // ── 1. Subtle ambient floating particles ───────────────────
+      for (const pt of particles) {
+        const a = pt.angle + tick * 0.35;
+        const px = Math.cos(a) * pt.radius;
+        const py = pt.yOff + Math.sin(a * 1.4) * 14;
+        const pz = (Math.sin(a) + 1) / 2;
+        const alpha = 0.08 + pz * 0.16;
         ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = gr;
-        ctx.lineWidth = 0.7 + depth * 0.7;
-        ctx.stroke();
+        ctx.arc(px, py, pt.size, 0, Math.PI * 2);
+        ctx.fillStyle = pt.red
+          ? `rgba(200,16,46,${alpha})`
+          : `rgba(30,64,148,${alpha})`;
+        ctx.fill();
       }
 
-      // ── Strands — 3-pass soft glow ────────────────────────────
-      COLORS.forEach((col, si) => {
+      // ── 2. Build depth-sorted draw primitives (true Z-occlusion) ─
+      const queue = [];
+
+      // Backbone segments (smooth tubular ribbon with depth-based width & alpha)
+      for (let si = 0; si < 2; si++) {
         const phase = si * Math.PI;
-        const [r, g, b] = RGBS[si];
-        [
-          { lw: 9,   a: 0.07 },
-          { lw: 4,   a: 0.22 },
-          { lw: 1.8, a: 0.95 },
-        ].forEach(({ lw, a }) => {
+        for (let i = 0; i < SAMPLES; i++) {
+          const p0 = project(i / SAMPLES, phase);
+          const p1 = project((i + 1) / SAMPLES, phase);
+          queue.push({
+            type: "seg",
+            z: (p0.z + p1.z) * 0.5,
+            si,
+            p0,
+            p1,
+          });
+        }
+      }
+
+      // Base-pair rungs + phosphate beads
+      for (let i = 1; i < RUNGS; i++) {
+        const u = i / RUNGS;
+        const pA = project(u, 0);
+        const pB = project(u, Math.PI);
+        queue.push({
+          type: "rung",
+          z: (pA.z + pB.z) * 0.5 - 0.05,
+          pA,
+          pB,
+        });
+        queue.push({ type: "bead", z: pA.z + 0.06, si: 0, p: pA });
+        queue.push({ type: "bead", z: pB.z + 0.06, si: 1, p: pB });
+      }
+
+      // Painter's algorithm: draw back-to-front
+      queue.sort((a, b) => a.z - b.z);
+
+      for (const item of queue) {
+        const depth01 = Math.max(0, Math.min(1, (item.z + 1) * 0.5));
+
+        if (item.type === "rung") {
+          const { pA, pB } = item;
+          const mx = (pA.x + pB.x) * 0.5;
+          const my = (pA.y + pB.y) * 0.5;
+          const alpha = 0.16 + depth01 * 0.44;
+          const lw = 1.4 + depth01 * 1.6;
+
+          // Paired base-pair gradient bar
+          const gr = ctx.createLinearGradient(pA.x, pA.y, pB.x, pB.y);
+          gr.addColorStop(0,    `rgba(200,16,46,${alpha})`);
+          gr.addColorStop(0.45, `rgba(200,16,46,${alpha * 0.65})`);
+          gr.addColorStop(0.5,  `rgba(255,255,255,${alpha * 0.9})`);
+          gr.addColorStop(0.55, `rgba(30,64,148,${alpha * 0.65})`);
+          gr.addColorStop(1,    `rgba(30,64,148,${alpha})`);
+
           ctx.beginPath();
-          for (let i = 0; i <= N; i++) {
-            const p = getP(i, phase);
-            i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-          }
-          ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+          ctx.moveTo(pA.x, pA.y);
+          ctx.lineTo(pB.x, pB.y);
+          ctx.strokeStyle = gr;
           ctx.lineWidth = lw;
+          ctx.lineCap = "round";
           ctx.stroke();
-        });
-      });
 
-      // ── Node dots ─────────────────────────────────────────────
-      for (let i = 0; i <= N; i++) {
-        COLORS.forEach((col, si) => {
-          const { x, y, depth } = getP(i, si * Math.PI);
-          const [r, g, b] = RGBS[si];
-          const sc = (depth + 1) / 2;
-          const rd = 2.2 + sc * 3.2;
-          const al = 0.45 + sc * 0.55;
-
-          // soft outer halo
+          // Subtle hydrogen-bond center node
           ctx.beginPath();
-          ctx.arc(x, y, rd + 6, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${r},${g},${b},${al * 0.10})`;
+          ctx.arc(mx, my, 1.3 + depth01 * 1.1, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${0.4 + depth01 * 0.5})`;
           ctx.fill();
+        } else if (item.type === "seg") {
+          const col = STRANDS[item.si];
+          const { p0, p1 } = item;
+          const alpha = 0.22 + depth01 * 0.78;
+          const lw = 2.0 + depth01 * 3.4;
 
-          // core with radial highlight
-          const dg = ctx.createRadialGradient(x - rd*0.3, y - rd*0.3, 0, x, y, rd);
-          dg.addColorStop(0, `rgba(255,210,230,${al})`);
-          dg.addColorStop(1, `rgba(${r},${g},${b},${al})`);
+          // Outer soft glow on front-facing segments
+          if (depth01 > 0.45) {
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${(depth01 - 0.45) * 0.22})`;
+            ctx.lineWidth = lw + 7;
+            ctx.lineCap = "round";
+            ctx.stroke();
+          }
+
+          // Main 3D backbone tube
           ctx.beginPath();
-          ctx.arc(x, y, rd, 0, Math.PI * 2);
-          ctx.fillStyle = dg;
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${alpha})`;
+          ctx.lineWidth = lw;
+          ctx.lineCap = "round";
+          ctx.stroke();
+
+          // Specular highlight along front tube
+          if (depth01 > 0.55) {
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.strokeStyle = `rgba(255,255,255,${(depth01 - 0.55) * 0.55})`;
+            ctx.lineWidth = Math.max(0.8, lw * 0.26);
+            ctx.lineCap = "round";
+            ctx.stroke();
+          }
+        } else if (item.type === "bead") {
+          const col = STRANDS[item.si];
+          const { x, y, scale } = item.p;
+          const r = (3.0 + depth01 * 3.8) * (0.85 + 0.15 * scale);
+          const alpha = 0.35 + depth01 * 0.65;
+
+          // Soft ambient halo for front spheres
+          if (depth01 > 0.5) {
+            ctx.beginPath();
+            ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},${(depth01 - 0.5) * 0.16})`;
+            ctx.fill();
+          }
+
+          // Glossy 3D sphere shading (specular highlight → midtone → shadow)
+          const sg = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+          sg.addColorStop(0,    `rgba(${col.hi[0]},${col.hi[1]},${col.hi[2]},${alpha})`);
+          sg.addColorStop(0.45, `rgba(${col.r},${col.g},${col.b},${alpha})`);
+          sg.addColorStop(1,    `rgba(${col.dark[0]},${col.dark[1]},${col.dark[2]},${alpha})`);
+
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = sg;
           ctx.fill();
-        });
+        }
       }
 
       ctx.restore();
 
-      tick -= 0.020;
+      tick -= 0.014;
       scheduleNext();
     };
 
@@ -1064,8 +1246,8 @@ function DNACanvas() {
   }, []);
 
   return (
-    <canvas ref={canvasRef}
-      style={{ borderRadius: 24, display: "block",
+    <canvas ref={canvasRef} className="bsd-dna-canvas"
+      style={{ borderRadius: 24, display: "block", maxWidth: "100%", height: "auto",
         boxShadow: "none" }} />
   );
 }
@@ -1124,29 +1306,29 @@ function HeroSection({ lang, onBrowse, onSearch }) {
             <DNACanvas />
           </div>
           {/* Floating badge - clients */}
-          <div style={{ position: "absolute", bottom: -10, right: -10, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,16,46,0.12)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", fontFamily: T.font, zIndex: 2 }}>
+          <div className="bsd-hero-badge-br" style={{ position: "absolute", bottom: -10, right: -10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,16,46,0.12)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", fontFamily: T.font, zIndex: 2 }}>
             <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>{lang === "zh" ? "年服务企业" : "Annual Clients"}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: T.red, fontFamily: T.fontHead, lineHeight: 1 }}>200<span style={{ fontSize: 13, fontWeight: 600 }}>+</span></div>
           </div>
           {/* Floating badge - SKUs */}
-          <div style={{ position: "absolute", top: -10, left: -10, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(20px)", border: "1px solid rgba(160,10,180,0.15)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", fontFamily: T.font, zIndex: 2 }}>
-            <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>{lang === "zh" ? "产品型号" : "Product SKUs"}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#a020b0", fontFamily: T.fontHead, lineHeight: 1 }}>1900<span style={{ fontSize: 13, fontWeight: 600 }}>+</span></div>
+          <div className="bsd-hero-badge-tl" style={{ position: "absolute", top: -10, left: -10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(20px)", border: "1px solid rgba(30,64,148,0.16)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 4px 20px rgba(15,23,42,0.08)", fontFamily: T.font, zIndex: 2 }}>
+            <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 2 }}>{lang === "zh" ? "产品型号" : "Product SKUs"}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#1E4094", fontFamily: T.fontHead, lineHeight: 1 }}>1900<span style={{ fontSize: 13, fontWeight: 600 }}>+</span></div>
           </div>
         </div>
 
         {/* ── 全宽搜索框 ── */}
-        <div style={{ gridColumn: "1 / -1", marginTop: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(24px) saturate(180%)", border: "1.5px solid rgba(200,16,46,0.18)", borderRadius: 20, padding: "6px 8px 6px 22px", boxShadow: "0 8px 40px rgba(200,16,46,0.12), inset 0 1px 0 rgba(255,255,255,0.9)", maxWidth: 720, margin: "0 auto" }}>
+        <div style={{ gridColumn: "1 / -1", marginTop: 40, minWidth: 0 }}>
+          <div className="bsd-hero-search-bar" style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(24px) saturate(180%)", border: "1.5px solid rgba(200,16,46,0.18)", borderRadius: 20, padding: "6px 8px 6px 22px", boxShadow: "0 8px 40px rgba(200,16,46,0.12), inset 0 1px 0 rgba(255,255,255,0.9)", maxWidth: 720, margin: "0 auto" }}>
             <Search size={18} color="#6B7280" style={{ marginRight: 10, flexShrink: 0 }} />
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
               onKeyDown={e => e.key === "Enter" && doSearch()}
               placeholder={lang === "zh" ? "搜索产品货号、名称、规格..." : "Search by SKU, name or specification..."}
-              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 16, fontFamily: T.font, color: "#333", padding: "10px 0" }}
+              style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 15, fontFamily: T.font, color: "#333", padding: "10px 0" }}
             />
-            <button onClick={doSearch} className="lg-btn"
+            <button onClick={doSearch} className="lg-btn bsd-hero-search-btn"
               onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}
               style={{ ...LG.primary, borderRadius: 14, padding: "11px 26px", fontSize: 15, fontFamily: T.font, whiteSpace: "nowrap", flexShrink: 0 }}>
               {lang === "zh" ? "搜索产品" : "Search"}
@@ -1160,15 +1342,91 @@ function HeroSection({ lang, onBrowse, onSearch }) {
 }
 
 
+const HOME_CATEGORIES = [
+  {
+    id: "实验耗材", zh: "实验耗材", en: "Lab Consumables", count: 1180, accent: "#C8102E",
+    descZh: "移液吸头、离心管、PCR耗材、细胞培养与针式过滤器全系列。",
+    descEn: "Pipette tips, centrifuge tubes, PCR consumables, cell culture & syringe filters.",
+    subsZh: ["吸头", "低吸附吸头", "离心管", "PCR板"],
+    subsEn: ["Pipette Tips", "Low-Bind Tips", "Tubes", "PCR Plates"],
+  },
+  {
+    id: "化学试剂与小分子", zh: "化学试剂与小分子", en: "Chemical Reagents", count: 662, accent: "#D97706",
+    descZh: "高纯有机溶剂、缓冲盐、SiRNA、PROTAC 与小分子研发试剂。",
+    descEn: "High-purity solvents, buffers, SiRNA, PROTAC & small-molecule reagents.",
+    subsZh: ["有机溶剂", "生物试剂", "SiRNA", "PROTAC"],
+    subsEn: ["Solvents", "Bio Reagents", "SiRNA", "PROTAC"],
+  },
+  {
+    id: "质控试剂盒", zh: "质控试剂盒", en: "QC Kits", count: 53, accent: "#9333EA",
+    descZh: "HCP ELISA、HCD qPCR、rFC 内毒素及生物药放行质控检测套装。",
+    descEn: "HCP ELISA, HCD qPCR, rFC endotoxin & biologics release QC kits.",
+    subsZh: ["HCP ELISA", "HCD qPCR", "内毒素检测"],
+    subsEn: ["HCP ELISA", "HCD qPCR", "Endotoxin"],
+  },
+  {
+    id: "质控分析工具酶", zh: "质控分析工具酶", en: "QC Enzymes", count: 37, accent: "#059669",
+    descZh: "测序级胰蛋白酶、Glu-C、Lys-C、糖苷酶 F 等正交酶切与糖基化工具酶。",
+    descEn: "Sequencing-grade Trypsin, Glu-C, Lys-C & PNGase F for orthogonal mapping.",
+    subsZh: ["胰蛋白酶", "Glu-C", "Lys-C", "糖苷酶F"],
+    subsEn: ["Trypsin", "Glu-C", "Lys-C", "PNGase F"],
+  },
+  {
+    id: "早期研发", zh: "早期研发", en: "Early R&D", count: 36, accent: "#0284C7",
+    descZh: "ADC-Linker-Payload、靶向偶联关键中间体与早期药物筛选工具。",
+    descEn: "ADC-Linker-Payload, conjugation intermediates & discovery screening tools.",
+    subsZh: ["ADC", "Linker-Payload", "早期筛选"],
+    subsEn: ["ADC", "Linker-Payload", "Screening"],
+  },
+  {
+    id: "超滤离心管", zh: "超滤离心管", en: "Ultrafiltration Tubes", count: 22, accent: "#EA580C",
+    descZh: "低蛋白吸附 PES 膜超滤浓缩管，多截留分子量适配蛋白与多肽纯化。",
+    descEn: "Low-protein-binding PES membrane filters for protein & peptide concentration.",
+    subsZh: ["低吸附PES", "3/10/30 kDa", "浓缩脱盐"],
+    subsEn: ["Low-Bind PES", "3/10/30 kDa", "Concentration"],
+  },
+];
+
 function CategorySection({ lang, onSelectCat }) {
+  const zh = lang === "zh";
   return (
-    <section style={{ padding: "64px 24px", display: "flex", flexDirection: "column", alignItems: "center", boxSizing: "border-box" }}>
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h2 style={{ fontSize: 32, fontWeight: 700, color: T.navy, margin: "0 0 8px" }}>{lang === "zh" ? "产品中心" : "Products"}</h2>
-        <p style={{ fontSize: 15, color: T.textSecondary }}>{lang === "zh" ? "七大产品线，覆盖实验全流程" : "Seven product lines covering the entire workflow"}</p>
+    <section className="bsd-cat-section" style={{ padding: "64px 32px 72px", display: "flex", flexDirection: "column", alignItems: "center", boxSizing: "border-box" }}>
+      <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 640 }}>
+        <div style={{ display: "inline-block", background: T.redLight, color: T.red, fontSize: 12, fontWeight: 700, padding: "4px 14px", borderRadius: 20, marginBottom: 12, letterSpacing: 0.5 }}>
+          {zh ? "1,990 款现货与定制型号" : "1,990+ CATALOG SKUS"}
+        </div>
+        <h2 style={{ fontSize: 32, fontWeight: 800, color: T.navy, margin: "0 0 10px", fontFamily: T.fontHead }}>{zh ? "产品中心" : "Product Lines"}</h2>
+        <p style={{ fontSize: 15, color: T.textSecondary, margin: 0 }}>{zh ? "六大产品线，覆盖科研与生物药质控全流程" : "Six product lines covering research and biopharma QC workflows"}</p>
       </div>
-      <div style={{ width: "100%", maxWidth: 1500, height: 500, borderRadius: 24, overflow: "hidden", position: "relative" }}>
-        <TreemapTypography lang={lang} onCategoryClick={onSelectCat} />
+      <div className="bsd-cat-grid">
+        {HOME_CATEGORIES.map(cat => (
+          <a key={cat.id} href={categoryPath(cat.id)} className="bsd-cat-card"
+            onClick={e => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onSelectCat(cat.id); } }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: cat.accent }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: cat.accent + "14", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CatIcon cat={cat.id} size={22} color={cat.accent} />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: cat.accent, background: cat.accent + "12", padding: "4px 10px", borderRadius: 999 }}>
+                {cat.count.toLocaleString()} {zh ? "款产品" : "SKUs"}
+              </span>
+            </div>
+            <h3 style={{ fontSize: 19, fontWeight: 700, color: T.textPrimary, margin: "0 0 8px", fontFamily: T.fontHead }}>
+              {zh ? cat.zh : cat.en}
+            </h3>
+            <p style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.65, margin: "0 0 16px", flex: 1 }}>
+              {zh ? cat.descZh : cat.descEn}
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+              {(zh ? cat.subsZh : cat.subsEn).map(s => (
+                <span key={s} style={{ fontSize: 11, fontWeight: 500, color: T.textSecondary, background: "#F3F4F6", padding: "3px 9px", borderRadius: 6 }}>{s}</span>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: T.red, paddingTop: 12, borderTop: "1px solid #F3F4F6" }}>
+              {zh ? "进入该分类" : "Explore Category"} <ArrowRight size={14} />
+            </div>
+          </a>
+        ))}
       </div>
     </section>
   );
@@ -1866,14 +2124,24 @@ function ContactSection({ lang }) {
 }
 
 function TrustedBy({ lang }) {
+  const zh = lang === "zh";
+  const badges = [
+    { Icon: ShieldCheck, label: zh ? "上海市生物医药行业协会" : "Shanghai Biopharma Industry Assoc." },
+    { Icon: Award, label: zh ? "12+ 项国家发明与实用新型专利" : "12+ National Patents" },
+    { Icon: CheckCircle2, label: zh ? "国家权威机构检测认证" : "Certified Quality Testing" },
+  ];
   return (
-    <div style={{ background: "#FAFAFA", borderTop: "1px solid rgba(0,0,0,0.05)", padding: "32px 40px", textAlign: "center", fontFamily: T.font }}>
-      <p style={{ fontSize: 12, color: "#AAA", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 20, fontWeight: 600 }}>
-        {lang === "zh" ? "受到国内外顶级机构认可" : "Trusted by Top-Tier Institutions"}
+    <div style={{ background: "#FFFFFF", borderTop: "1px solid #E5E7EB", padding: "36px 24px", textAlign: "center", fontFamily: T.font }}>
+      <p style={{ fontSize: 12, color: "#4B5563", letterSpacing: 1.4, textTransform: "uppercase", marginBottom: 18, fontWeight: 700 }}>
+        {zh ? "权威行业认证与机构认可" : "Industry Recognition & Certifications"}
       </p>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(200,16,46,0.12)", borderRadius: 14, padding: "10px 24px", boxShadow: "0 2px 16px rgba(200,16,46,0.06)" }}>
-        <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, ${T.red}, ${T.redDark})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800, fontFamily: T.fontHead }}>协</div>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#333", fontFamily: T.fontHead, letterSpacing: 0.2 }}>{lang === "zh" ? "上海市生物医药行业协会" : "Shanghai Biopharmaceutical Industry Assoc."}</span>
+      <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
+        {badges.map((b, i) => (
+          <div key={i} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 18px" }}>
+            <b.Icon size={17} color={T.red} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, fontFamily: T.fontHead }}>{b.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1920,7 +2188,7 @@ function Footer({ lang, onSelectCat, onNavigate }) {
       ];
 
   return (
-    <footer style={{ background: T.bgDark, color: "rgba(255,255,255,0.55)", fontFamily: T.font, padding: "40px 32px 20px" }}>
+    <footer style={{ background: T.bgDark, color: "rgba(255,255,255,0.76)", fontFamily: T.font, padding: "44px 32px 24px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div className="bsd-footer-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
@@ -1945,7 +2213,7 @@ function Footer({ lang, onSelectCat, onNavigate }) {
             ))}
           </div>
         </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 16, display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.5 }}>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 18, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.72)" }}>
           <span>{lang === "zh" ? "© 2026 上海博仕达生物工程有限公司（BOOSTER）" : "© 2026 BOOSTER Bio-Technology Co., Ltd."}</span>
           <span>{lang === "zh" ? "仅供研究使用" : "For Research Use Only"}</span>
         </div>
@@ -2007,13 +2275,13 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 260px", display: "flex", alignItems: "center", background: "#fff", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "4px 10px 4px 14px", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          <div style={{ flex: "1 1 200px", minWidth: 0, display: "flex", alignItems: "center", background: "#fff", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "4px 10px 4px 14px", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
             <Search size={16} color={T.textMuted} style={{ marginRight: 8, flexShrink: 0 }} />
             <input
               value={search}
               onChange={e => onSearchChange?.(e.target.value)}
               placeholder={lang === "zh" ? "在当前目录中搜索货号、名称、规格..." : "Search SKU, name, or spec in catalog..."}
-              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: T.font, color: T.textPrimary, padding: "7px 0" }}
+              style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: T.font, color: T.textPrimary, padding: "7px 0" }}
             />
             {search && (
               <button type="button" onClick={() => onSearchChange?.("")} aria-label="Clear search"
@@ -2044,7 +2312,7 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
               const inCart = inquiryCart.some(item => item.sku === p.sku);
               return (
                 <div key={p.sku + "-" + i} className="bsd-product-card" onClick={() => onViewDetail(p)}>
-                  <div style={{ height: 158, background: "#F8FAFC", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 14, position: "relative" }}>
+                  <div style={{ height: 162, background: "#FFFFFF", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
                     {imgUrl ? (
                       <img src={imgUrl} alt={tName(lang, p.name) || p.sku} loading="lazy" decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
                     ) : (
@@ -2052,13 +2320,13 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
                         <CatIcon cat={p.cat} size={24} color={T.red} />
                       </div>
                     )}
-                    <span style={{ position: "absolute", top: 10, left: 10, fontSize: 10, fontWeight: 600, background: "rgba(255,255,255,0.92)", color: T.textSecondary, padding: "2px 8px", borderRadius: 6, border: `1px solid ${T.border}` }}>
-                      {tCat(lang, p.cat)}
-                    </span>
                   </div>
                   <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", flex: 1 }}>
-                    <div style={{ marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 8 }}>
                       <code style={{ fontSize: 11, fontWeight: 600, color: T.red, background: T.redLight, padding: "2px 7px", borderRadius: 5 }}>{p.sku}</code>
+                      <span style={{ fontSize: 10, fontWeight: 600, background: "#F3F4F6", color: T.textSecondary, padding: "2px 7px", borderRadius: 5, whiteSpace: "nowrap" }}>
+                        {tCat(lang, p.cat)}
+                      </span>
                     </div>
                     <div className="line-clamp-2" style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, lineHeight: 1.4, marginBottom: 6, minHeight: 39 }}>
                       {tName(lang, p.name) || "—"}
@@ -2419,7 +2687,7 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, p
       <div onClick={onBack} style={{ fontSize: 13, color: T.red, cursor: "pointer", marginBottom: 16, fontWeight: 500 }}>{lang==="zh"?"← 返回产品列表":"← Back"}</div>
       <GlassCard hover={false} style={{ padding: 0, overflow: "hidden" }}>
         <div className="bsd-detail-card" style={{ display: "flex" }}>
-          <div className="bsd-detail-media" style={{ width: 340, minHeight: 300, background: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 24, flexShrink: 0 }}>
+          <div className="bsd-detail-media" style={{ width: 340, minHeight: 300, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 24, flexShrink: 0 }}>
             {resolveProductImage(imageMap, p.sku, "compressed") ? <img src={resolveProductImage(imageMap, p.sku, "compressed")} alt={p.name} decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} /> : <div style={{ width: 88, height: 88, borderRadius: 20, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center" }}><CatIcon cat={p.cat} size={42} color={T.red} /></div>}
           </div>
           <div style={{ flex: 1, padding: "24px 28px" }}>
@@ -2684,14 +2952,20 @@ export default function BoosterHomepage() {
   const showBgVideo = allowVideo && section === "home";
 
   return (
-    <div style={{ fontFamily: T.font, color: T.textPrimary, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: showBgVideo ? "transparent" : "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)", position: "relative" }}>
-      {/* ── 首页桌面端视频背景（移动端及其他页面使用轻量渐变） ── */}
-      {showBgVideo && <>
-        <video ref={videoRef} autoPlay muted loop playsInline preload="metadata" style={{ position: "fixed", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: -2, pointerEvents: "none", transform: "scaleX(-1)" }}>
-          <source src="/hero-bg.mp4" type="video/mp4" />
-        </video>
-        <div style={{ position: "fixed", inset: 0, background: "rgba(255,255,255,0.60)", zIndex: -1, pointerEvents: "none" }} />
-      </>}
+    <div style={{ fontFamily: T.font, color: T.textPrimary, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: showBgVideo ? "transparent" : "#FFFFFF", position: "relative" }}>
+      {/* ── 首页无水印视频背景（裁切放大消除边角水印 + 柔白遮罩保障文字清晰） ── */}
+      {showBgVideo ? (
+        <>
+          <div style={{ position: "fixed", inset: 0, overflow: "hidden", zIndex: -2, pointerEvents: "none" }}>
+            <video ref={videoRef} autoPlay muted loop playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1) scale(1.18)", transformOrigin: "center center" }}>
+              <source src="/hero-bg.mp4" type="video/mp4" />
+            </video>
+          </div>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(255,255,255,0.72)", zIndex: -1, pointerEvents: "none" }} />
+        </>
+      ) : (
+        <div style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none", backgroundImage: "radial-gradient(rgba(15,23,42,0.065) 1px, transparent 1px), radial-gradient(circle at 82% 16%, rgba(200,16,46,0.06) 0%, transparent 42%)", backgroundSize: "28px 28px, 100% 100%" }} />
+      )}
       <style>{`
         * { box-sizing: border-box; margin: 0; }
         input::placeholder, textarea::placeholder { color: #9CA3AF; }
@@ -2706,7 +2980,20 @@ export default function BoosterHomepage() {
         .lg-btn::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.16) 50%,transparent 60%); background-size:200% 100%; opacity:0; transition:opacity 0.25s; pointer-events:none; border-radius:inherit; }
         .lg-btn:hover::after { opacity:1; animation:lgShimmer 1.4s linear infinite; }
       `}</style>
-      <TopBar lang={lang} setLang={setLang} />
+      <TopBar
+        lang={lang}
+        setLang={setLang}
+        onAction={(action) => {
+          if (action?.type === "search") {
+            setSearch(action.query || "");
+            go("products");
+          } else if (action?.type === "category") {
+            goProducts(action.category || null);
+          } else if (action?.type === "section") {
+            go(action.section || "products");
+          }
+        }}
+      />
       <NavHeader lang={lang} section={section} setSection={go} user={user} onLogin={() => setShowLogin(true)} onRegister={() => setShowRegister(true)} onLogout={handleLogout} />
 
       {section === "home" && <>

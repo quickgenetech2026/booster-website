@@ -32577,19 +32577,19 @@
     "description": "IdeS蛋白酶",
     "targetCategories": "通用,unknown,图片展示"
   },
-  "BSDT80406-3.5": {
+  "BSDT80406-5": {
     "image": "工具酶/BSDT80406-3.5KU_IdeS_NEW.jpg",
     "matchType": "exact",
     "category": "工具酶",
     "description": "IdeS蛋白酶",
-    "skuMatch": "BSDT80406-3.5"
+    "skuMatch": "BSDT80406-5"
   },
-  "BSDT80407-1": {
+  "BSDT80407-5": {
     "image": "工具酶/BSDT80407-1KU_IdeZ_NEW.jpg",
     "matchType": "exact",
     "category": "工具酶",
     "description": "IdeZ蛋白酶",
-    "skuMatch": "BSDT80407-1"
+    "skuMatch": "BSDT80407-5"
   },
   "BSDT80407-2": {
     "image": "工具酶/BSDT80407-2KU_IdeZ_NEW.jpg",

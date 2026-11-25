@@ -27,7 +27,7 @@ const DESELECT_FACTOR = 0.55; // unselected blocks shrink to 55% when something 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    1. PRETEXT — Canvas text measurement (no DOM, no reflow)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-class Pretext {
+export class Pretext {
   constructor() {
     this._cv = document.createElement("canvas");
     this._cx = this._cv.getContext("2d");
@@ -407,11 +407,28 @@ function initEngine(host, categories, initialLang, onCategoryClick) {
 
   const byId = Object.fromEntries(blocks.map(b => [b.cat.id, b]));
 
+  let isVisible = true;
+  let isTabActive = !document.hidden;
+
+  function scheduleNext() {
+    if (rafId || !isVisible || !isTabActive) return;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stopLoop() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
   /* ── RAF tick ──────────────────────────────────────────────────────────── */
   function tick(ts) {
+    rafId = null;
+    if (!isVisible || !isTabActive) return;
     const cw = host.clientWidth;
     const ch = host.clientHeight;
-    if (cw < 10 || ch < 10) { rafId = requestAnimationFrame(tick); return; }
+    if (cw < 10 || ch < 10) { scheduleNext(); return; }
 
     // ── 1. Update weights (sqrt-normalised + breathe + hover + select) ──────
     // sqrt(count) compresses the 53:1 range to ~7:1 so small blocks stay legible
@@ -503,15 +520,33 @@ function initEngine(host, categories, initialLang, onCategoryClick) {
       }
     }
 
-    rafId = requestAnimationFrame(tick);
+    scheduleNext();
   }
 
-  rafId = requestAnimationFrame(tick);
+  const io = typeof IntersectionObserver !== "undefined"
+    ? new IntersectionObserver(([entry]) => {
+        isVisible = Boolean(entry?.isIntersecting);
+        if (isVisible) scheduleNext();
+        else stopLoop();
+      }, { threshold: 0.01 })
+    : null;
+  if (io) io.observe(host);
+
+  const onVisibilityChange = () => {
+    isTabActive = !document.hidden;
+    if (isTabActive) scheduleNext();
+    else stopLoop();
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  scheduleNext();
 
   return {
     setLang(l) { lang = l; },
     destroy() {
-      if (rafId) cancelAnimationFrame(rafId);
+      stopLoop();
+      if (io) io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       while (host.firstChild) host.removeChild(host.firstChild);
     },
   };

@@ -1,7 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProductIndex, productPath, readRoute } from '../src/product-routes.js';
-import { buildNotFoundPage, buildProductPage, buildSitemap } from '../scripts/generate-seo-pages.mjs';
+import { buildProductIndex, productPath, readRoute, categoryPath } from '../src/product-routes.js';
+import {
+  buildNotFoundPage,
+  buildProductPage,
+  buildSitemap,
+  buildHomePage,
+  buildCategoryPage,
+  buildStaticSectionPages,
+} from '../scripts/generate-seo-pages.mjs';
 
 const products = [
   { sku: 'BSD-A.2', name: '亲水过滤器', spec: '0.22 µm', cat: '实验耗材', sub: '过滤器', brand: 'Booster', price: 10 },
@@ -60,4 +67,44 @@ test('unknown routes use a non-indexable 404 page instead of the homepage', () =
   assert.match(html, /<meta name="robots" content="noindex"/);
   assert.match(html, /<h1>页面未找到<\/h1>/);
   assert.doesNotMatch(html, /rel="canonical"/);
+});
+
+test('section and category routes resolve cleanly', () => {
+  const index = buildProductIndex(products);
+  assert.deepEqual(readRoute('/solutions/', index), { section: 'solutions', product: null });
+  assert.deepEqual(readRoute('/peptide-qc/', index), { section: 'peptideqc', product: null });
+  assert.deepEqual(readRoute('/contact/', index), { section: 'contact', product: null });
+  assert.deepEqual(readRoute('/products/category/lab-consumables/', index), {
+    section: 'products',
+    product: null,
+    category: '实验耗材',
+  });
+  assert.deepEqual(readRoute('/products/category/unknown/', index), { section: 'notfound', product: null });
+  assert.equal(categoryPath('实验耗材'), '/products/category/lab-consumables/');
+});
+
+test('SEO pages include JSON-LD, breadcrumbs, and internal links', () => {
+  const index = buildProductIndex(products);
+  const prodHtml = buildProductPage(template, products[0], 'https://tflabservice.com', {
+    related: [products[4]],
+    index,
+  });
+  assert.match(prodHtml, /application\/ld\+json/);
+  assert.match(prodHtml, /"@type":"Product"/);
+  assert.match(prodHtml, /"@type":"BreadcrumbList"/);
+  assert.match(prodHtml, /href="\/products\/BSD-C\/"/);
+
+  const homeHtml = buildHomePage(template, index, 'https://tflabservice.com');
+  assert.match(homeHtml, /"@type":"Organization"/);
+  assert.match(homeHtml, /href="\/peptide-qc\/"/);
+  assert.match(homeHtml, /href="\/products\/category\/lab-consumables\/"/);
+
+  const catHtml = buildCategoryPage(template, '实验耗材', [products[0], products[4]], index, 'https://tflabservice.com');
+  assert.match(catHtml, /"@type":"CollectionPage"/);
+  assert.match(catHtml, /href="\/products\/BSD-A\.2\/"/);
+
+  const sections = buildStaticSectionPages(template, 'https://tflabservice.com');
+  assert.match(sections.peptideqc, /FDA 0\.5%/);
+  assert.match(sections.solutions, /R436C/);
+  assert.match(sections.contact, /139-1641-3233/);
 });

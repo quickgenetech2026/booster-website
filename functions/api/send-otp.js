@@ -1,9 +1,13 @@
+import {
+  getCorsHeaders,
+  isValidEmail,
+  generateSecureOtp,
+  createOtpToken,
+} from './_security.js';
+
 export async function onRequestPost(context) {
   const { request, env } = context;
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Type': 'application/json',
-  };
+  const headers = getCorsHeaders(request);
 
   try {
     const { contact, type } = await request.json();
@@ -16,16 +20,21 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: '暂不支持短信验证，请切换至邮箱验证' }), { status: 400, headers });
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+    const email = String(contact).trim().toLowerCase();
+    if (!isValidEmail(email)) {
       return new Response(JSON.stringify({ error: '邮箱格式不正确' }), { status: 400, headers });
     }
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const token = btoa(`${contact}:${otp}:${Date.now()}`);
-
     const apiKey = env.RESEND_API_KEY;
-    if (apiKey) {
-      const emailHtml = `
+    const secret = env.OTP_SECRET || env.RESEND_API_KEY;
+    if (!secret || !apiKey) {
+      return new Response(JSON.stringify({ error: '验证码服务未配置' }), { status: 500, headers });
+    }
+
+    const otp = generateSecureOtp();
+    const token = await createOtpToken(email, otp, secret);
+
+    const emailHtml = `
 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #fff;">
   <div style="background: linear-gradient(135deg,#9B0023,#C8102E); padding: 28px 36px; border-radius: 12px 12px 0 0;">
     <h1 style="color:#fff; margin:0; font-size:20px; font-weight:800;">博仕达生物 — 登录验证码</h1>
@@ -42,22 +51,21 @@ export async function onRequestPost(context) {
   </div>
 </div>`;
 
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: '博仕达生物 <service@tflabservice.com>',
-          to: [contact],
-          subject: `【博仕达生物】登录验证码：${otp}`,
-          html: emailHtml,
-        }),
-      });
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: '博仕达生物 <service@tflabservice.com>',
+        to: [email],
+        subject: `【博仕达生物】登录验证码：${otp}`,
+        html: emailHtml,
+      }),
+    });
 
-      if (!res.ok) {
-        const err = await res.text();
-        console.error('Resend OTP error:', err);
-        return new Response(JSON.stringify({ error: '验证码发送失败，请稍后重试' }), { status: 500, headers });
-      }
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('Resend OTP error:', err);
+      return new Response(JSON.stringify({ error: '验证码发送失败，请稍后重试' }), { status: 500, headers });
     }
 
     return new Response(JSON.stringify({ success: true, token }), { status: 200, headers });
@@ -67,12 +75,6 @@ export async function onRequestPost(context) {
   }
 }
 
-export async function onRequestOptions() {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export async function onRequestOptions(context) {
+  return new Response(null, { headers: getCorsHeaders(context.request) });
 }

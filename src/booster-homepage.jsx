@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { getProductImage as _getImageFromMap } from "./data/imageLoader.js";
-import ALL_PRODUCTS from "./data/all-products.json";
-import { buildProductIndex, productPath, readRoute } from "./product-routes.js";
+import { loadCatalog, getCachedCatalog, resolveProductImage } from "./data/catalogLoader.js";
+import { productPath, readRoute, sectionPath, categoryPath, SLUG_TO_CATEGORY } from "./product-routes.js";
 import "./BorderGlow.css";
-import { TreemapTypography } from "./TreemapTypography.jsx";
+import { TreemapTypography, Pretext } from "./TreemapTypography.jsx";
 
 // ─── BorderGlow: cursor-tracked edge-glow card ────────────────────────────────
 function _parseHSL(s) {
@@ -249,13 +248,39 @@ function tSpec(lang, spec) {
   return s.replace(/\s{2,}/g, " ").trim();
 }
 
-function getProductImage(sku) {
-  return _getImageFromMap(sku, "", "main") || null;
+function handleImgFallback(e, imageMap, sku) {
+  const img = e.currentTarget;
+  if (img.dataset.fallbackTried) {
+    img.style.display = "none";
+    return;
+  }
+  img.dataset.fallbackTried = "1";
+  const mainUrl = resolveProductImage(imageMap, sku, "main");
+  if (mainUrl && img.src !== mainUrl) {
+    img.src = mainUrl;
+  } else {
+    img.style.display = "none";
+  }
 }
 
 const PAGE_SIZE = 20;
-const PRODUCT_INDEX = buildProductIndex(ALL_PRODUCTS);
 const SITE_URL = "https://tflabservice.com";
+
+function classifyInitialPath(pathname) {
+  if (pathname === "/") return { section: "home", category: null, needsCatalog: false };
+  if (pathname === "/solutions" || pathname === "/solutions/") return { section: "solutions", category: null, needsCatalog: false };
+  if (pathname === "/peptide-qc" || pathname === "/peptide-qc/") return { section: "peptideqc", category: null, needsCatalog: false };
+  if (pathname === "/contact" || pathname === "/contact/") return { section: "contact", category: null, needsCatalog: false };
+  if (pathname === "/products" || pathname === "/products/") return { section: "products", category: null, needsCatalog: true };
+  const catMatch = pathname.match(/^\/products\/category\/([^/]+)\/?$/);
+  if (catMatch) {
+    const category = SLUG_TO_CATEGORY[catMatch[1]];
+    if (category) return { section: "products", category, needsCatalog: true };
+    return { section: "notfound", category: null, needsCatalog: false };
+  }
+  if (/^\/products\/[^/]+\/?$/.test(pathname)) return { section: "products", category: null, needsCatalog: true };
+  return { section: "notfound", category: null, needsCatalog: false };
+}
 
 // ═══════ Animated Counter (Mac style) ═══════
 function AnimNum({ value, suffix = "", duration = 2000 }) {
@@ -298,12 +323,31 @@ function GlassCard({ children, style, hover = true }) {
 // ═══════ SECTIONS ═══════
 
 function TopBar({ lang, setLang }) {
+  const barRef = useRef(null);
+  const textRef = useRef(null);
+  useEffect(() => {
+    const pt = new Pretext();
+    const apply = () => {
+      const el = textRef.current;
+      const bar = barRef.current;
+      if (!el || !bar) return;
+      const bw = bar.getBoundingClientRect().width;
+      if (!bw) return;
+      const text = lang === "zh" ? "🎉 2026 新品发布 — 国产替代系列全面升级" : "🎉 2026 New Products — Domestic Alternative Series Fully Upgraded";
+      const px = pt.fitSize(text, "500 {S}px Inter", 10, 16, bw * 0.62) ?? 12;
+      el.style.fontSize = px + "px";
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    if (barRef.current) ro.observe(barRef.current);
+    return () => ro.disconnect();
+  }, [lang]);
   return (
-    <div style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.92)", fontSize: 12, padding: "6px 0", fontFamily: T.font, textAlign: "center", position: "relative" }}>
-      <span style={{ fontWeight: 500, letterSpacing: 0.3 }}>
+    <div ref={barRef} className="bsd-topbar" style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.92)", fontSize: 12, padding: "6px 0", fontFamily: T.font, textAlign: "center", position: "relative" }}>
+      <span ref={textRef} style={{ fontWeight: 500, letterSpacing: 0.3 }}>
         {lang === "zh" ? "🎉 2026 新品发布 — 国产替代系列全面升级" : "🎉 2026 New Products — Domestic Alternative Series Fully Upgraded"}
       </span>
-      <div style={{ position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)", display: "flex", gap: 2 }}>
+      <div className="bsd-topbar-lang" style={{ position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)", display: "flex", gap: 2 }}>
         {["zh","en"].map(l => (
           <button key={l} onClick={() => setLang(l)} style={{ background: lang===l ? "linear-gradient(145deg,rgba(255,255,255,0.30),rgba(255,255,255,0.12))" : "transparent", backdropFilter: lang===l ? "blur(12px)" : "none", color: "#fff", border: lang===l ? "1px solid rgba(255,255,255,0.40)" : "none", borderRadius: 6, padding: "2px 10px", fontSize: 11, cursor: "pointer", fontFamily: T.font, fontWeight: lang===l ? 700 : 400, boxShadow: lang===l ? "inset 0 1px 0 rgba(255,255,255,0.50), 0 2px 6px rgba(0,0,0,0.10)" : "none", transition: "all 0.2s" }}>
             {l === "zh" ? "中文" : "EN"}
@@ -317,17 +361,42 @@ function TopBar({ lang, setLang }) {
 function NavHeader({ lang, section, setSection, user, onLogin, onRegister, onLogout }) {
   const [hovered, setHovered] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navItemRefs = useRef({});
   const navItems = lang === "zh"
-    ? [["home","首页"],["products","产品中心"],["solutions","解决方案"],["peptideqc","多肽QC方案"],["catmap","产品矩阵"],["contact","联系我们"]]
-    : [["home","Home"],["products","Products"],["solutions","Solutions"],["peptideqc","Peptide QC"],["catmap","Product Map"],["contact","Contact"]];
+    ? [["home","首页"],["products","产品中心"],["solutions","解决方案"],["peptideqc","多肽QC方案"],["contact","联系我们"]]
+    : [["home","Home"],["products","Products"],["solutions","Solutions"],["peptideqc","Peptide QC"],["contact","Contact"]];
+  useEffect(() => {
+    const pt = new Pretext();
+    // For ZH 2-char items spread letterSpacing to match 4-char density
+    navItems.forEach(([k, label]) => {
+      const el = navItemRefs.current[k];
+      if (!el) return;
+      if (lang === "zh") {
+        const charCount = label.replace(/[A-Za-z0-9]/g, "").length;
+        const measured4 = pt.measure(label, "600 13px Inter");
+        const measured2 = charCount <= 2 ? pt.measure(label, "600 13px Inter") : null;
+        if (charCount <= 2 && measured2 !== null) {
+          // Spread 2-char labels to match ~4-char visual width
+          const target4w = pt.measure("产品中心", "600 13px Inter");
+          const extra = Math.max(0, (target4w - measured2) / (charCount + 1));
+          el.style.letterSpacing = Math.min(extra, 3) + "px";
+        } else {
+          el.style.letterSpacing = "0.3px";
+        }
+      } else {
+        el.style.letterSpacing = "-0.2px";
+      }
+    });
+  }, [lang]);
   return (
-    <div style={{ position: "sticky", top: 20, zIndex: 50, display: "flex", justifyContent: "center", padding: "0 16px", pointerEvents: "none" }}>
-      <header style={{
+    <div style={{ position: "sticky", top: 14, zIndex: 50, display: "flex", flexDirection: "column", alignItems: "center", padding: "0 16px", pointerEvents: "none" }}>
+      <header className="bsd-nav-header" style={{
         pointerEvents: "all",
-        display: "flex", alignItems: "center", gap: 8,
-        background: "rgba(255,255,255,0.30)",
-        backdropFilter: "blur(50px) saturate(180%)",
-        WebkitBackdropFilter: "blur(50px) saturate(180%)",
+        display: "flex", alignItems: "center",
+        background: "rgba(255,255,255,0.78)",
+        backdropFilter: "blur(32px) saturate(180%)",
+        WebkitBackdropFilter: "blur(32px) saturate(180%)",
         borderRadius: 16,
         border: "1px solid rgba(0,0,0,0.10)",
         boxShadow: "inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0 8px 32px rgba(200,16,46,0.08)",
@@ -336,29 +405,33 @@ function NavHeader({ lang, section, setSection, user, onLogin, onRegister, onLog
         gap: 4,
       }}>
         {/* Logo */}
-        <div onClick={() => setSection("home")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "4px 10px", borderRadius: 10, flexShrink: 0 }}>
+        <div onClick={() => { setSection("home"); setMobileMenuOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "4px 10px", borderRadius: 10, flexShrink: 0 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${T.red}, ${T.redDark})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800, fontFamily: T.fontHead }}>B</div>
           <span style={{ fontSize: 14, fontWeight: 800, color: T.red, fontFamily: T.fontHead, letterSpacing: -0.3 }}>{lang === "zh" ? "博仕达" : "BOOSTER"}</span>
         </div>
 
         {/* Divider */}
-        <div style={{ width: 1, height: 18, background: "rgba(200,16,46,0.15)", margin: "0 4px" }} />
+        <div className="bsd-nav-divider" style={{ width: 1, height: 18, background: "rgba(200,16,46,0.15)", margin: "0 4px" }} />
 
         {/* Nav links */}
+        <nav aria-label="Main navigation" className="bsd-nav-links">
         {navItems.map(([k, label]) => (
-          <div key={k} onClick={() => setSection(k)}
+          <a key={k} href={sectionPath(k)} ref={el => navItemRefs.current[k] = el}
+            onClick={e => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); setSection(k); } }}
             onMouseEnter={() => setHovered(k)} onMouseLeave={() => setHovered(null)}
             style={{
               padding: "6px 14px", fontSize: 13, fontWeight: section === k ? 600 : 500,
               color: section === k ? T.red : hovered === k ? T.red : "#555",
-              cursor: "pointer", borderRadius: 10, transition: "all 0.15s",
+              cursor: "pointer", borderRadius: 10, transition: "all 0.15s", textDecoration: "none",
               background: section === k ? "rgba(200,16,46,0.08)" : hovered === k ? "rgba(200,16,46,0.04)" : "transparent",
-            }}>{label}</div>
+            }}>{label}</a>
         ))}
+        </nav>
 
         {/* Divider */}
-        <div style={{ width: 1, height: 18, background: "rgba(200,16,46,0.15)", margin: "0 4px" }} />
+        <div className="bsd-nav-divider" style={{ width: 1, height: 18, background: "rgba(200,16,46,0.15)", margin: "0 4px" }} />
 
+        <div className="bsd-nav-auth">
         {user ? (
           /* ── 已登录态 ── */
           <div style={{ position: "relative" }}>
@@ -399,7 +472,66 @@ function NavHeader({ lang, section, setSection, user, onLogin, onRegister, onLog
             </button>
           </>
         )}
+        </div>
+
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          className="bsd-mobile-toggle"
+          aria-label={lang === "zh" ? "切换导航菜单" : "Toggle menu"}
+          onClick={() => setMobileMenuOpen(v => !v)}
+        >
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
       </header>
+
+      {mobileMenuOpen && (
+        <div style={{
+          pointerEvents: "all",
+          width: "100%",
+          marginTop: 8,
+          background: "rgba(255,255,255,0.96)",
+          backdropFilter: "blur(24px)",
+          borderRadius: 16,
+          border: "1px solid rgba(200,16,46,0.14)",
+          boxShadow: "0 16px 40px rgba(0,0,0,0.12)",
+          padding: 12,
+          fontFamily: T.font,
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {navItems.map(([k, label]) => (
+              <button key={k} type="button" onClick={() => { setSection(k); setMobileMenuOpen(false); }}
+                style={{
+                  textAlign: "left", padding: "10px 14px", border: "none", borderRadius: 10, fontSize: 14,
+                  fontWeight: section === k ? 700 : 500, cursor: "pointer", fontFamily: T.font,
+                  color: section === k ? T.red : "#333",
+                  background: section === k ? "rgba(200,16,46,0.08)" : "transparent",
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid #f0f0f0", marginTop: 10, paddingTop: 10, display: "flex", gap: 8 }}>
+            {user ? (
+              <>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: T.red, alignSelf: "center" }}>{user.name}</span>
+                <button type="button" onClick={() => { onLogout(); setMobileMenuOpen(false); }} style={{ ...LG.ghost, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontFamily: T.font }}>
+                  {lang === "zh" ? "退出登录" : "Logout"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => { onLogin(); setMobileMenuOpen(false); }} style={{ ...LG.ghost, flex: 1, borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: T.font }}>
+                  {lang === "zh" ? "登录" : "Login"}
+                </button>
+                <button type="button" onClick={() => { onRegister(); setMobileMenuOpen(false); }} style={{ ...LG.primary, flex: 1, borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: T.font }}>
+                  {lang === "zh" ? "注册" : "Register"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -427,22 +559,27 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
   const [error, setError] = useState("");
   const [localMode, setLocalMode] = useState(false);
 
+  const zh = lang === "zh";
+
   const sendOtp = async () => {
     setError(""); setLoading(true);
     try {
       const res = await fetch("/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contact, type: tab }),
+        body: JSON.stringify({ contact: contact.trim(), type: tab }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "发送失败"); setLoading(false); return; }
+      if (!res.ok) { setError(data.error || (zh ? "发送失败" : "Failed to send code")); setLoading(false); return; }
       setToken(data.token || "");
       setStep(2);
     } catch {
-      // 本地预览模式（Vite dev，CF Functions 不可用）
-      setLocalMode(true);
-      setStep(2);
+      if (import.meta.env.DEV) {
+        setLocalMode(true);
+        setStep(2);
+      } else {
+        setError(zh ? "网络异常，请稍后重试" : "Network error, please try again");
+      }
     }
     setLoading(false);
   };
@@ -450,13 +587,13 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
   const verifyOtp = async () => {
     setError(""); setLoading(true);
     try {
-      if (localMode) {
-        // 本地固定验证码
-        if (otp.trim() !== "888888") { setError("验证码错误（本地预览模式固定验证码为 888888）"); setLoading(false); return; }
+      if (localMode && import.meta.env.DEV) {
+        if (otp.trim() !== "888888") { setError(zh ? "验证码错误（本地开发模式验证码：888888）" : "Invalid code (dev mode: 888888)"); setLoading(false); return; }
         const users = JSON.parse(localStorage.getItem("bsd_users") || "[]");
-        const found = users.find(u => u.email === contact || u.phone === contact);
-        if (!found) { setError("该账号未注册，请先注册"); setLoading(false); return; }
-        onSuccess(found); return;
+        const normalized = contact.trim().toLowerCase();
+        const found = users.find(u => u.email?.toLowerCase() === normalized || u.phone === contact.trim());
+        onSuccess(found || { name: normalized.split("@")[0] || normalized, email: normalized });
+        return;
       }
       const res = await fetch("/api/verify-otp", {
         method: "POST",
@@ -464,13 +601,13 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
         body: JSON.stringify({ token, otp }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "验证失败"); setLoading(false); return; }
+      if (!res.ok) { setError(data.error || (zh ? "验证失败" : "Verification failed")); setLoading(false); return; }
       const users = JSON.parse(localStorage.getItem("bsd_users") || "[]");
-      const found = users.find(u => u.email === data.email);
-      if (!found) { setError("该账号未注册，请先注册"); setLoading(false); return; }
-      onSuccess(found);
-    } catch (e) {
-      setError("网络错误，请重试");
+      const localMatch = users.find(u => u.email?.toLowerCase() === data.email?.toLowerCase());
+      const resolvedUser = data.user || localMatch || { name: (data.email || "").split("@")[0] || "User", email: data.email };
+      onSuccess(resolvedUser);
+    } catch {
+      setError(zh ? "网络错误，请重试" : "Network error, please try again");
     }
     setLoading(false);
   };
@@ -505,7 +642,7 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
           <input value={contact} onChange={e => setContact(e.target.value)}
             onFocus={e => e.target.style.borderColor = "#C8102E"} onBlur={e => e.target.style.borderColor = "#eee"}
             onKeyDown={e => e.key === "Enter" && sendOtp()}
-            placeholder={tab === "email" ? "请输入注册邮箱" : "请输入手机号"} style={inputStyle} />
+            placeholder={tab === "email" ? (zh ? "请输入注册邮箱" : "Enter your email") : (zh ? "请输入手机号" : "Enter phone number")} style={inputStyle} />
 
           {error && <p style={{ color: "#C8102E", fontSize: 13, margin: "8px 0 0" }}>⚠ {error}</p>}
           <button onClick={sendOtp} disabled={loading || !contact.trim()} className="lg-btn" onMouseEnter={e=>!(loading||!contact.trim())&&LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{ ...btnPrimary, opacity: (loading || !contact.trim()) ? 0.6 : 1 }}>
@@ -517,16 +654,16 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, padding: "10px 14px", background: "#FFF5F7", borderRadius: 10, border: "1px solid rgba(200,16,46,0.15)" }}>
             <span style={{ fontSize: 18 }}>📬</span>
             <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#C8102E" }}>验证码已发送</p>
-              <p style={{ margin: 0, fontSize: 12, color: "#888" }}>{localMode ? `本地预览模式，固定验证码：888888` : `已发送至 ${contact}`}</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#C8102E" }}>{zh ? "验证码已发送" : "Code Sent"}</p>
+              <p style={{ margin: 0, fontSize: 12, color: "#888" }}>{localMode ? (zh ? "本地开发模式，固定验证码：888888" : "Dev mode code: 888888") : (zh ? `已发送至 ${contact}` : `Sent to ${contact}`)}</p>
             </div>
           </div>
 
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#555", display: "block", marginBottom: 6 }}>输入 6 位验证码</label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "#555", display: "block", marginBottom: 6 }}>{zh ? "输入 6 位验证码" : "Enter 6-digit code"}</label>
           <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
             onFocus={e => e.target.style.borderColor = "#C8102E"} onBlur={e => e.target.style.borderColor = "#eee"}
             onKeyDown={e => e.key === "Enter" && verifyOtp()}
-            placeholder="请输入验证码" maxLength={6}
+            placeholder={zh ? "请输入验证码" : "6-digit code"} maxLength={6}
             style={{ ...inputStyle, fontSize: 22, letterSpacing: 8, textAlign: "center", fontWeight: 700 }} />
 
           {error && <p style={{ color: "#C8102E", fontSize: 13, margin: "8px 0 0" }}>⚠ {error}</p>}
@@ -534,13 +671,13 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
             {loading ? "验证中..." : (lang === "zh" ? "登录" : "Login")}
           </button>
           <button onClick={() => { setStep(1); setOtp(""); setError(""); }} style={{ width: "100%", background: "transparent", border: "none", color: "#888", fontSize: 13, cursor: "pointer", marginTop: 8, fontFamily: "inherit" }}>
-            ← 重新获取验证码
+            {zh ? "← 重新获取验证码" : "← Resend code"}
           </button>
         </>}
 
         <p style={{ textAlign: "center", fontSize: 13, color: "#888", marginTop: 20, marginBottom: 0 }}>
-          还没有账号？
-          <span onClick={onSwitchRegister} style={{ color: "#C8102E", fontWeight: 600, cursor: "pointer", marginLeft: 4 }}>立即注册</span>
+          {zh ? "还没有账号？" : "Don't have an account?"}
+          <span onClick={onSwitchRegister} style={{ color: "#C8102E", fontWeight: 600, cursor: "pointer", marginLeft: 4 }}>{zh ? "立即注册" : "Register"}</span>
         </p>
       </div>
     </ModalOverlay>
@@ -805,7 +942,22 @@ function DNACanvas() {
     const COLORS = ["#C8102E", "#8B0FC8"]; // red strand, purple strand
     const RGBS   = COLORS.map(hexToRgb);
 
+    let isVisible = true;
+    let isTabActive = !document.hidden;
+    const scheduleNext = () => {
+      if (raf || !isVisible || !isTabActive) return;
+      raf = requestAnimationFrame(draw);
+    };
+    const stopLoop = () => {
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    };
+
     const draw = () => {
+      raf = null;
+      if (!isVisible || !isTabActive) return;
       ctx.clearRect(0, 0, W, H);
 
       // transparent — blends with page background
@@ -882,11 +1034,31 @@ function DNACanvas() {
       ctx.restore();
 
       tick -= 0.020;
-      raf = requestAnimationFrame(draw);
+      scheduleNext();
     };
 
+    const io = typeof IntersectionObserver !== "undefined"
+      ? new IntersectionObserver(([entry]) => {
+          isVisible = Boolean(entry?.isIntersecting);
+          if (isVisible) scheduleNext();
+          else stopLoop();
+        }, { threshold: 0.01 })
+      : null;
+    if (io) io.observe(canvas);
+
+    const onVis = () => {
+      isTabActive = !document.hidden;
+      if (isTabActive) scheduleNext();
+      else stopLoop();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     draw();
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      stopLoop();
+      if (io) io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, []);
 
   return (
@@ -899,6 +1071,27 @@ function DNACanvas() {
 
 function HeroSection({ lang, onBrowse, onSearch }) {
   const [q, setQ] = useState("");
+  const heroTitleRef = useRef(null);
+  const heroColRef = useRef(null);
+  useEffect(() => {
+    const pt = new Pretext();
+    const apply = () => {
+      const el = heroTitleRef.current;
+      const col = heroColRef.current;
+      if (!el || !col) return;
+      const colW = col.getBoundingClientRect().width;
+      if (!colW) return;
+      // Fit the longer line to ~90% of the left column width
+      const text = lang === "zh" ? "助力科研前行" : "Faster Progress";
+      const font = "800 {S}px Fustat";
+      const px = pt.fitSize(text, font, 32, 120, colW * 0.90) ?? 52;
+      el.style.fontSize = px + "px";
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    if (heroColRef.current) ro.observe(heroColRef.current);
+    return () => ro.disconnect();
+  }, [lang]);
   const doSearch = () => { if (q.trim()) onSearch(q.trim()); };
   return (
     <div style={{ background: "transparent", position: "relative", overflow: "hidden", minHeight: 580, display: "flex", alignItems: "center" }}>
@@ -907,10 +1100,10 @@ function HeroSection({ lang, onBrowse, onSearch }) {
       <div style={{ position: "absolute", top: 40, left: 120, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,120,140,0.35) 0%, transparent 70%)", filter: "blur(40px)", animation: "glowPulse 8s ease-in-out infinite 1s", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: -60, right: 200, width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,200,210,0.4) 0%, transparent 70%)", filter: "blur(50px)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 40px 80px", position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", width: "100%" }}>
+      <div className="bsd-hero-grid" style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 40px 80px", position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", width: "100%" }}>
 
         {/* ── LEFT: Content ── */}
-        <div>
+        <div ref={heroColRef}>
           {/* Social proof */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(200,16,46,0.15)", borderRadius: 24, padding: "6px 16px", marginBottom: 28, boxShadow: "0 2px 12px rgba(200,16,46,0.08)" }}>
             <span style={{ fontSize: 13 }}>{"★★★★★".split("").map((s,i)=><span key={i} style={{color:"#FF801E"}}>{s}</span>)}</span>
@@ -918,7 +1111,7 @@ function HeroSection({ lang, onBrowse, onSearch }) {
           </div>
 
           {/* Headline */}
-          <h1 style={{ fontFamily: T.fontHead, fontSize: "clamp(40px,4.5vw,68px)", fontWeight: 800, lineHeight: 1.05, letterSpacing: -2, margin: "0 0 20px", color: "#0D0D0D" }}>
+          <h1 ref={heroTitleRef} style={{ fontFamily: T.fontHead, fontSize: "52px", fontWeight: 800, lineHeight: 1.05, letterSpacing: -2, margin: "0 0 20px", color: "#0D0D0D" }}>
             {lang === "zh"
               ? <><span style={{ color: T.red }}>降本增效</span><br />助力科研前行</>
               : <><span style={{ color: T.red }}>Smarter Science,</span><br />Faster Progress</>}
@@ -957,7 +1150,7 @@ function HeroSection({ lang, onBrowse, onSearch }) {
           {/* Floating badge - SKUs */}
           <div style={{ position: "absolute", top: -10, left: -10, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(20px)", border: "1px solid rgba(160,10,180,0.15)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", fontFamily: T.font, zIndex: 2 }}>
             <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>{lang === "zh" ? "产品型号" : "Product SKUs"}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#a020b0", fontFamily: T.fontHead, lineHeight: 1 }}>1800<span style={{ fontSize: 13, fontWeight: 600 }}>+</span></div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#a020b0", fontFamily: T.fontHead, lineHeight: 1 }}>1900<span style={{ fontSize: 13, fontWeight: 600 }}>+</span></div>
           </div>
         </div>
 
@@ -987,27 +1180,14 @@ function HeroSection({ lang, onBrowse, onSearch }) {
 
 
 function CategorySection({ lang, onSelectCat }) {
-  const cats = useMemo(() => { const m = {}; ALL_PRODUCTS.forEach(p => m[p.cat]=(m[p.cat]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]); }, []);
-  const colors = ["#FFE8EC","#FFF1F3","#FFF3E0","#FCE4EC","#F3E5F5","#E0F7FA","#FFF8E1"];
   return (
-    <section style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 32px" }}>
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
+    <section style={{ padding: "64px 24px", display: "flex", flexDirection: "column", alignItems: "center", boxSizing: "border-box" }}>
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
         <h2 style={{ fontSize: 32, fontWeight: 700, color: T.navy, margin: "0 0 8px" }}>{lang === "zh" ? "产品中心" : "Products"}</h2>
         <p style={{ fontSize: 15, color: T.textSecondary }}>{lang === "zh" ? "七大产品线，覆盖实验全流程" : "Seven product lines covering the entire workflow"}</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 14 }}>
-        {cats.map(([cat, count], i) => {
-          const meta = CAT_META[cat] || { icon: "📦" };
-          return (
-            <GlassCard key={cat} style={{ padding: "28px 16px", textAlign: "center" }}>
-              <div onClick={() => onSelectCat(cat)}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>{meta.icon}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, marginBottom: 4 }}>{tCat(lang, cat)}</div>
-                <div style={{ fontSize: 12, color: T.textSecondary }}>{count.toLocaleString()} {lang === "zh" ? "个产品" : "products"}</div>
-              </div>
-            </GlassCard>
-          );
-        })}
+      <div style={{ width: "100%", maxWidth: 1500, height: 500, borderRadius: 24, overflow: "hidden", position: "relative" }}>
+        <TreemapTypography lang={lang} onCategoryClick={onSelectCat} />
       </div>
     </section>
   );
@@ -1104,7 +1284,7 @@ function SolutionsSection({ lang }) {
         {/* Active Solution Detail */}
         <div key={activeSol} style={{ animation: "fadeSlide 0.4s ease" }}>
           {/* Stats Row - Mac style animated counters */}
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 28 }}>
+          <div className="bsd-sol-stats" style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 28 }}>
             {sol.stats.map((st, i) => (
               <GlassCard key={i} hover={false} style={{ padding: "20px 32px", textAlign: "center", minWidth: 150 }}>
                 <div style={{ fontSize: 36, fontWeight: 700, color: T.red, letterSpacing: -1, fontVariantNumeric: "tabular-nums" }}>
@@ -1115,7 +1295,7 @@ function SolutionsSection({ lang }) {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div className="bsd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             {/* Left: Description + Advantages */}
             <div>
               <GlassCard hover={false} style={{ padding: "28px", marginBottom: 16 }}>
@@ -1179,11 +1359,11 @@ function SolutionsSection({ lang }) {
 
 function StatsBar({ lang }) {
   const stats = lang === "zh"
-    ? [{v:"4700",s:"+",l:"产品 SKU"},{v:"500",s:"+",l:"合作客户"},{v:"30",s:"%+",l:"最高节能率"},{v:"12",s:"+",l:"国家专利"}]
-    : [{v:"4700",s:"+",l:"Product SKUs"},{v:"500",s:"+",l:"Clients"},{v:"30",s:"%+",l:"Max Savings"},{v:"12",s:"+",l:"Patents"}];
+    ? [{v:"1900",s:"+",l:"产品 SKU"},{v:"200",s:"+",l:"合作科研机构"},{v:"30",s:"%+",l:"最高节能率"},{v:"12",s:"+",l:"国家专利"}]
+    : [{v:"1900",s:"+",l:"Product SKUs"},{v:"200",s:"+",l:"Research Clients"},{v:"30",s:"%+",l:"Max Savings"},{v:"12",s:"+",l:"Patents"}];
   return (
     <section style={{ background: `linear-gradient(135deg, ${T.navy} 0%, #2D2D52 100%)`, padding: "52px 0" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32, textAlign: "center" }}>
+      <div className="bsd-stats-grid" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32, textAlign: "center" }}>
         {stats.map((s, i) => (
           <div key={i}>
             <div style={{ fontSize: 44, fontWeight: 700, color: "#fff", letterSpacing: -1, fontVariantNumeric: "tabular-nums" }}><AnimNum value={s.v} suffix={s.s} duration={2000+i*300} /></div>
@@ -1551,9 +1731,28 @@ function PeptideQCSection({ lang, onContact, onProducts }) {
 /* ─── Product Map Section ──────────────────────────────────────────────────── */
 function ProductMapSection({ lang, onCategoryClick }) {
   const T2 = { dark: "#111", sub: "#555" };
+  const mapTitleRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  useEffect(() => {
+    const pt = new Pretext();
+    const apply = () => {
+      const el = mapTitleRef.current;
+      const wrap = mapContainerRef.current;
+      if (!el || !wrap) return;
+      const w = wrap.getBoundingClientRect().width;
+      if (!w) return;
+      const text = lang === "zh" ? "产品分类矩阵" : "Product Category Map";
+      const px = pt.fitSize(text, "800 {S}px Fustat", 32, 140, w * 0.48) ?? 40;
+      el.style.fontSize = px + "px";
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    if (mapContainerRef.current) ro.observe(mapContainerRef.current);
+    return () => ro.disconnect();
+  }, [lang]);
   return (
     <section style={{ minHeight: "100vh", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", padding: "100px 24px 60px", boxSizing: "border-box" }}>
-      <div style={{ width: "100%", maxWidth: 1500, display: "flex", flexDirection: "column" }}>
+      <div ref={mapContainerRef} style={{ width: "100%", maxWidth: 1500, display: "flex", flexDirection: "column" }}>
         {/* Header */}
         <div style={{ marginBottom: 32, maxWidth: 680 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(200,16,46,0.07)", border: "1px solid rgba(200,16,46,0.18)", borderRadius: 20, padding: "5px 14px", marginBottom: 14 }}>
@@ -1561,7 +1760,7 @@ function ProductMapSection({ lang, onCategoryClick }) {
               {lang === "zh" ? "LIVE · 实时布局" : "LIVE · Real-time Layout"}
             </span>
           </div>
-          <h2 style={{ fontSize: 40, fontFamily: "Fustat, sans-serif", fontWeight: 800, color: T2.dark, margin: 0, lineHeight: 1.15, letterSpacing: -0.5 }}>
+          <h2 ref={mapTitleRef} style={{ fontSize: 40, fontFamily: "Fustat, sans-serif", fontWeight: 800, color: T2.dark, margin: 0, lineHeight: 1.15, letterSpacing: -0.5 }}>
             {lang === "zh" ? "产品分类矩阵" : "Product Category Map"}
           </h2>
           <p style={{ marginTop: 10, fontSize: 15, color: T2.sub, lineHeight: 1.6, fontFamily: "Inter, sans-serif", margin: "10px 0 0" }}>
@@ -1654,7 +1853,7 @@ function ContactSection({ lang }) {
           <h2 style={{ fontSize: 32, fontWeight: 700, color: T.navy, margin: "0 0 8px" }}>{lang === "zh" ? "联系我们" : "Contact Us"}</h2>
           <p style={{ fontSize: 15, color: T.textSecondary }}>{lang === "zh" ? "我们的团队随时为您提供支持" : "Our team is ready to help"}</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+        <div className="bsd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {info.map((c, i) => (
               <GlassCard key={i} hover={false} style={{ padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -1685,23 +1884,67 @@ function TrustedBy({ lang }) {
 }
 
 
-function Footer({ lang }) {
+function Footer({ lang, onSelectCat, onNavigate }) {
+  const cols = lang === "zh"
+    ? [
+        ["产品", [
+          ["实验耗材", categoryPath("实验耗材"), () => onSelectCat?.("实验耗材")],
+          ["质控分析工具酶", categoryPath("质控分析工具酶"), () => onSelectCat?.("质控分析工具酶")],
+          ["超滤离心管", categoryPath("超滤离心管"), () => onSelectCat?.("超滤离心管")],
+          ["质控试剂盒", categoryPath("质控试剂盒"), () => onSelectCat?.("质控试剂盒")],
+        ]],
+        ["方案与服务", [
+          ["全部产品目录", "/products/", () => onSelectCat?.(null)],
+          ["节能空调方案", "/solutions/", () => onNavigate?.("solutions")],
+          ["多肽 QC 方案", "/peptide-qc/", () => onNavigate?.("peptideqc")],
+        ]],
+        ["公司", [
+          ["首页", "/", () => onNavigate?.("home")],
+          ["联系我们", "/contact/", () => onNavigate?.("contact")],
+          ["邮件咨询", "mailto:service@tflabservice.com", null],
+        ]],
+      ]
+    : [
+        ["Products", [
+          ["Lab Consumables", categoryPath("实验耗材"), () => onSelectCat?.("实验耗材")],
+          ["QC Enzymes", categoryPath("质控分析工具酶"), () => onSelectCat?.("质控分析工具酶")],
+          ["Ultrafiltration", categoryPath("超滤离心管"), () => onSelectCat?.("超滤离心管")],
+          ["QC Kits", categoryPath("质控试剂盒"), () => onSelectCat?.("质控试剂盒")],
+        ]],
+        ["Solutions", [
+          ["All Products", "/products/", () => onSelectCat?.(null)],
+          ["Energy HVAC", "/solutions/", () => onNavigate?.("solutions")],
+          ["Peptide QC", "/peptide-qc/", () => onNavigate?.("peptideqc")],
+        ]],
+        ["Company", [
+          ["Home", "/", () => onNavigate?.("home")],
+          ["Contact Us", "/contact/", () => onNavigate?.("contact")],
+          ["Email Support", "mailto:service@tflabservice.com", null],
+        ]],
+      ];
+
   return (
     <footer style={{ background: T.bgDark, color: "rgba(255,255,255,0.55)", fontFamily: T.font, padding: "40px 32px 20px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div className="bsd-footer-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <a href="/" onClick={e => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onNavigate?.("home"); } }} style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", textDecoration: "none" }}>
               <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${T.red}, #FF6B81)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700 }}>B</div>
               <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{lang === "zh" ? "博仕达 BOOSTER" : "BOOSTER"}</span>
-            </div>
+            </a>
             <p style={{ fontSize: 13, lineHeight: 1.7, maxWidth: 320 }}>{lang === "zh" ? "上海博仕达生物工程有限公司（BOOSTER）— 全力为生命科技类企业提供专业化整体服务的一站式平台。" : "BOOSTER — A one-stop professional service platform for life science enterprises."}</p>
           </div>
-          <div style={{ display: "flex", gap: 48 }}>
-            {(lang === "zh" ? [["产品",["实验耗材","质控分析工具酶","超滤离心管","质控试剂盒"]],["服务",["工程服务","供应链服务","企业管家","产业园运营"]],["公司",["联系我们","新闻动态","合作伙伴","招贤纳士"]]] : [["Products",["Lab Consumables","QC Enzymes","Ultrafiltration","QC Kits"]],["Services",["Engineering","Supply Chain","Enterprise","Park Ops"]],["Company",["Contact","News","Partners","Careers"]]]).map(([t, links], i) => (
+          <div className="bsd-footer-cols" style={{ display: "flex", gap: 48 }}>
+            {cols.map(([t, links], i) => (
               <div key={i}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>{t}</div>
-                {links.map((lk, li) => <div key={li} style={{ fontSize: 13, padding: "3px 0", cursor: "pointer" }}>{lk}</div>)}
+                {links.map(([lk, href, action], li) => (
+                  <a key={li} href={href}
+                    onClick={action ? (e => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); action(); } }) : undefined}
+                    style={{ display: "block", color: "rgba(255,255,255,0.68)", fontSize: 13, padding: "4px 0", cursor: "pointer", fontFamily: T.font, textAlign: "left", textDecoration: "none" }}>
+                    {lk}
+                  </a>
+                ))}
               </div>
             ))}
           </div>
@@ -1716,30 +1959,41 @@ function Footer({ lang }) {
 }
 
 // ═══════ PRODUCT CATALOG ═══════
-function ProductCatalogSection({ lang, initialCat, search, onViewDetail }) {
+function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onViewDetail, products, productIndex, imageMap, loading }) {
   const [activeCat, setActiveCat] = useState(initialCat);
   const [activeSub, setActiveSub] = useState(null);
   const [page, setPage] = useState(0);
   useEffect(() => { setActiveCat(initialCat); setActiveSub(null); setPage(0); }, [initialCat]);
-  const cats = useMemo(() => { const m = {}; ALL_PRODUCTS.forEach(p => m[p.cat]=(m[p.cat]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]); }, []);
-  const subCats = useMemo(() => { const m = {}; ALL_PRODUCTS.forEach(p => { if(!m[p.cat]) m[p.cat]={}; m[p.cat][p.sub||""]=(m[p.cat][p.sub||""]||0)+1; }); const r={}; for(const[c,s] of Object.entries(m)) r[c]=Object.entries(s).sort((a,b)=>b[1]-a[1]); return r; }, []);
+  useEffect(() => { setPage(0); }, [search]);
+  const goPage = (p) => { setPage(p); window.scrollTo?.({ top: 0, behavior: "smooth" }); };
+  const safeProducts = products || [];
+  const cats = useMemo(() => { const m = {}; safeProducts.forEach(p => m[p.cat]=(m[p.cat]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]); }, [safeProducts]);
+  const subCats = useMemo(() => { const m = {}; safeProducts.forEach(p => { if(!m[p.cat]) m[p.cat]={}; m[p.cat][p.sub||""]=(m[p.cat][p.sub||""]||0)+1; }); const r={}; for(const[c,s] of Object.entries(m)) r[c]=Object.entries(s).sort((a,b)=>b[1]-a[1]); return r; }, [safeProducts]);
   const filtered = useMemo(() => {
-    let list = ALL_PRODUCTS;
+    let list = safeProducts;
     if (activeCat) list = list.filter(p => p.cat === activeCat);
     if (activeSub) list = list.filter(p => p.sub === activeSub);
     if (search.trim()) { const q = search.trim().toLowerCase(); list = list.filter(p => [p.sku,p.name,p.sub,p.spec].some(f => (f||"").toLowerCase().includes(q))); }
     return list;
-  }, [activeCat, activeSub, search]);
+  }, [safeProducts, activeCat, activeSub, search]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageProducts = filtered.slice(page*PAGE_SIZE, (page+1)*PAGE_SIZE);
 
+  if (loading || !products) {
+    return (
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px", textAlign: "center", color: T.textSecondary, fontSize: 15 }}>
+        {lang === "zh" ? "正在加载产品目录..." : "Loading product catalog..."}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 32px 64px", display: "flex", gap: 24 }}>
-      <div style={{ width: 220, flexShrink: 0 }}>
+    <div className="bsd-catalog-layout" style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 32px 64px", display: "flex", gap: 24 }}>
+      <div className="bsd-catalog-sidebar" style={{ width: 220, flexShrink: 0 }}>
         <GlassCard hover={false} style={{ padding: 0, overflow: "hidden", position: "sticky", top: 80 }}>
           <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: T.navy, borderBottom: `1px solid ${T.border}` }}>{lang === "zh" ? "产品分类" : "Categories"}</div>
           <div onClick={() => { setActiveCat(null); setActiveSub(null); setPage(0); }} style={{ padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: !activeCat ? 600 : 400, color: !activeCat ? T.red : T.textSecondary, background: !activeCat ? T.redLight : "transparent", borderLeft: !activeCat ? `3px solid ${T.red}` : "3px solid transparent" }}>
-            {lang === "zh" ? "全部" : "All"} ({ALL_PRODUCTS.length})
+            {lang === "zh" ? "全部" : "All"} ({safeProducts.length})
           </div>
           {cats.map(([cat, count]) => {
             const meta = CAT_META[cat]||{icon:"📦"}; const isA = activeCat===cat; const subs = subCats[cat]||[];
@@ -1754,10 +2008,30 @@ function ProductCatalogSection({ lang, initialCat, search, onViewDetail }) {
           })}
         </GlassCard>
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, color: T.textSecondary, marginBottom: 10 }}>{filtered.length.toLocaleString()} {lang === "zh" ? "个产品" : "products"}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 260px", display: "flex", alignItems: "center", background: "rgba(255,255,255,0.9)", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "4px 10px 4px 14px" }}>
+            <span style={{ fontSize: 14, opacity: 0.45, marginRight: 8 }}>🔍</span>
+            <input
+              value={search}
+              onChange={e => onSearchChange?.(e.target.value)}
+              placeholder={lang === "zh" ? "在当前目录中搜索货号、名称、规格..." : "Search SKU, name, or spec in catalog..."}
+              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: T.font, color: "#333", padding: "7px 0" }}
+            />
+            {search && (
+              <button type="button" onClick={() => onSearchChange?.("")} aria-label="Clear search"
+                style={{ background: "rgba(200,16,46,0.10)", border: "none", borderRadius: "50%", width: 22, height: 22, color: T.red, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                ✕
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 13, color: T.textSecondary, whiteSpace: "nowrap" }}>
+            {filtered.length.toLocaleString()} {lang === "zh" ? "个产品" : "products"}
+          </div>
+        </div>
         <GlassCard hover={false} style={{ padding: 0, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: T.font, color: T.red }}>
+          <div className="bsd-table-wrap">
+          <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 13, fontFamily: T.font, color: T.red }}>
             <thead><tr style={{ background: T.redLight }}>
               <th style={thS}>{lang==="zh"?"货号":"SKU"}</th><th style={{...thS,textAlign:"left"}}>{lang==="zh"?"产品名称":"Product"}</th><th style={thS}>{lang==="zh"?"分类":"Category"}</th><th style={thS}>{lang==="zh"?"规格":"Spec"}</th><th style={thS}></th>
             </tr></thead>
@@ -1768,24 +2042,25 @@ function ProductCatalogSection({ lang, initialCat, search, onViewDetail }) {
                   <td style={tdS}><code style={{ fontSize: 11, color: T.red, background: T.redLight, padding: "2px 6px", borderRadius: 4 }}>{p.sku}</code></td>
                   <td style={{...tdS, textAlign:"left"}}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {getProductImage(p.sku) && <img src={getProductImage(p.sku)} alt="" style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 4, background: T.redLight, flexShrink: 0 }} />}
+                      {resolveProductImage(imageMap, p.sku, "thumb") && <img src={resolveProductImage(imageMap, p.sku, "thumb")} alt="" loading="lazy" decoding="async" width={36} height={36} onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 4, background: T.redLight, flexShrink: 0 }} />}
                       <div><div style={{ fontWeight: 500, color: T.red, lineHeight: 1.3 }}>{tName(lang, p.name)||"—"}</div>{p.sub && <div style={{ fontSize: 11, color: T.textSecondary }}>{tSub(lang, p.sub)}</div>}</div>
                     </div>
                   </td>
                   <td style={tdS}><span style={{ fontSize: 11, background: T.redLight, padding: "2px 7px", borderRadius: 4, color: T.red }}>{tCat(lang, p.cat)}</span></td>
                   <td style={tdS}><span style={{ fontSize: 12, color: T.textSecondary }}>{tSpec(lang, p.spec)||"—"}</span></td>
-                  <td style={tdS}>{productPath(p, PRODUCT_INDEX)
-                    ? <a href={productPath(p, PRODUCT_INDEX)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
+                  <td style={tdS}>{productIndex && productPath(p, productIndex)
+                    ? <a href={productPath(p, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
                     : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </GlassCard>
-        {totalPages > 1 && <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 16 }}>
-          <PgBtn l="‹" d={page===0} o={() => setPage(page-1)} />
-          {pgn(page, totalPages).map((p,i) => p==="..."?<span key={i} style={{padding:"0 4px",color:T.textSecondary}}>…</span>:<PgBtn key={i} l={String(p+1)} a={p===page} o={() => setPage(p)} />)}
-          <PgBtn l="›" d={page>=totalPages-1} o={() => setPage(page+1)} />
+        {totalPages > 1 && <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 16, flexWrap: "wrap" }}>
+          <PgBtn l="‹" d={page===0} o={() => goPage(page-1)} />
+          {pgn(page, totalPages).map((p,i) => p==="..."?<span key={i} style={{padding:"0 4px",color:T.textSecondary}}>…</span>:<PgBtn key={i} l={String(p+1)} a={p===page} o={() => goPage(p)} />)}
+          <PgBtn l="›" d={page>=totalPages-1} o={() => goPage(page+1)} />
         </div>}
       </div>
     </div>
@@ -1802,9 +2077,13 @@ function PgBtn({ l, a, d, o }) {
 function pgn(c, t) { const p = []; if(t<=7){for(let i=0;i<t;i++)p.push(i);return p;} p.push(0); if(c>3)p.push("..."); for(let i=Math.max(1,c-1);i<=Math.min(t-2,c+1);i++)p.push(i); if(c<t-4)p.push("..."); p.push(t-1); return p; }
 
 // ═══════ 询价 Modal ═══════
-function InquiryModal({ lang, product: p, onClose }) {
+function InquiryModal({ lang, product: p, mode = "quote", onClose }) {
   const zh = lang === "zh";
-  const [form, setForm] = useState({ name: "", email: "", phone: "", qty: "", note: "" });
+  const isDatasheet = mode === "datasheet";
+  const [form, setForm] = useState({
+    name: "", email: "", phone: "", qty: "",
+    note: isDatasheet ? (zh ? "申请获取该产品的说明书（Datasheet）及质检报告（CoA）。" : "Requesting product Datasheet and Certificate of Analysis (CoA).") : "",
+  });
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1812,7 +2091,8 @@ function InquiryModal({ lang, product: p, onClose }) {
     if (!form.name.trim()) { alert(zh ? "请填写姓名" : "Please enter your name"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { alert(zh ? "请输入正确的邮箱" : "Invalid email"); return; }
     setStatus("sending");
-    const productLine = `【产品询价】\n货号（SKU）：${p.sku}\n产品名称：${p.name || "—"}\n品牌：${p.brand || "—"}\n规格：${p.spec || "—"}\n分类：${p.cat || "—"}`;
+    const tagTitle = isDatasheet ? "【产品说明书/CoA 申请】" : "【产品询价】";
+    const productLine = `${tagTitle}\n货号（SKU）：${p.sku}\n产品名称：${p.name || "—"}\n品牌：${p.brand || "—"}\n规格：${p.spec || "—"}\n分类：${p.cat || "—"}`;
     const qtyLine = form.qty ? `\n采购数量/需求：${form.qty}` : "";
     const noteLine = form.note ? `\n备注：${form.note}` : "";
     const message = productLine + qtyLine + noteLine;
@@ -1841,7 +2121,7 @@ function InquiryModal({ lang, product: p, onClose }) {
         {/* 头部 */}
         <div style={{ background: "linear-gradient(135deg,#9B0023,#C8102E)", padding: "22px 28px 18px", position: "relative" }}>
           <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "rgba(255,255,255,0.2)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-          <h2 style={{ color: "#fff", margin: 0, fontSize: 19, fontWeight: 800 }}>📧 {zh ? "产品询价" : "Product Inquiry"}</h2>
+          <h2 style={{ color: "#fff", margin: 0, fontSize: 19, fontWeight: 800 }}>{isDatasheet ? (zh ? "📄 申请产品说明书 / CoA" : "📄 Request Datasheet / CoA") : (zh ? "📧 产品询价" : "📧 Product Inquiry")}</h2>
           <p style={{ color: "rgba(255,255,255,0.8)", margin: "4px 0 0", fontSize: 12 }}>{zh ? "填写后我们将在 1 个工作日内与您联系" : "We'll respond within 1 business day"}</p>
         </div>
 
@@ -1871,7 +2151,7 @@ function InquiryModal({ lang, product: p, onClose }) {
             </div>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="bsd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   {lbl(zh ? "姓名" : "Name", true)}
                   <input value={form.name} onChange={e => set("name", e.target.value)}
@@ -1919,19 +2199,19 @@ function InquiryModal({ lang, product: p, onClose }) {
 }
 
 // ═══════ PRODUCT DETAIL ═══════
-function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
+function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, productIndex, imageMap }) {
   const meta = CAT_META[p.cat]||{icon:"📦",color:"#F5F5F5"};
   const [tab, setTab] = useState(0);
-  const [showInquiry, setShowInquiry] = useState(false);
+  const [inquiryMode, setInquiryMode] = useState(null); // null | "quote" | "datasheet"
   const tabs = lang==="zh"?["产品描述","技术参数","使用说明","储存运输"]:["Description","Specs","Instructions","Storage"];
-  const related = useMemo(() => ALL_PRODUCTS.filter(r => r.sku!==p.sku && r.cat===p.cat && r.sub===p.sub).slice(0,6), [p.sku,p.cat,p.sub]);
+  const related = useMemo(() => (products || []).filter(r => r.sku!==p.sku && r.cat===p.cat && r.sub===p.sub).slice(0,6), [products, p.sku,p.cat,p.sub]);
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 32px 64px" }}>
+    <div className="bsd-detail-wrap" style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 32px 64px" }}>
       <div onClick={onBack} style={{ fontSize: 13, color: T.red, cursor: "pointer", marginBottom: 16, fontWeight: 500 }}>{lang==="zh"?"← 返回产品列表":"← Back"}</div>
       <GlassCard hover={false} style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "flex" }}>
-          <div style={{ width: 320, minHeight: 300, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 20, flexShrink: 0 }}>
-            {getProductImage(p.sku) ? <img src={getProductImage(p.sku)} alt={p.name} style={{ maxWidth: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} /> : <div style={{ fontSize: 72, opacity: 0.3 }}>{meta.icon}</div>}
+        <div className="bsd-detail-card" style={{ display: "flex" }}>
+          <div className="bsd-detail-media" style={{ width: 320, minHeight: 300, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 20, flexShrink: 0 }}>
+            {resolveProductImage(imageMap, p.sku, "compressed") ? <img src={resolveProductImage(imageMap, p.sku, "compressed")} alt={p.name} decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} /> : <div style={{ fontSize: 72, opacity: 0.3 }}>{meta.icon}</div>}
           </div>
           <div style={{ flex: 1, padding: "24px 28px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -1945,14 +2225,14 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
                 <div key={i}><div style={{ fontSize: 11, fontWeight: 600, color: T.textSecondary, textTransform: "uppercase", marginBottom: 2 }}>{k}</div><div style={{ fontWeight: 500, color: T.red }}>{v}</div></div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowInquiry(true)} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📧 {lang==="zh"?"立即询价":"Quote"}</button>
-              <button className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.ghost, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📄 {lang==="zh"?"产品说明书":"Datasheet"}</button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={() => setInquiryMode("quote")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📧 {lang==="zh"?"立即询价":"Quote"}</button>
+              <button onClick={() => setInquiryMode("datasheet")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.ghost, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📄 {lang==="zh"?"产品说明书":"Datasheet"}</button>
             </div>
           </div>
         </div>
         <div style={{ borderTop: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
+          <div className="bsd-detail-tabs" style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
             {tabs.map((tb,i) => <div key={i} onClick={() => setTab(i)} style={{ padding: "12px 20px", fontSize: 13, fontWeight: tab===i?600:400, color: tab===i?T.red:T.textSecondary, borderBottom: tab===i?`2px solid ${T.red}`:"2px solid transparent", cursor: "pointer" }}>{tb}</div>)}
           </div>
           <div style={{ padding: "20px 28px", fontSize: 14, color: T.textSecondary, lineHeight: 1.8, minHeight: 100 }}>
@@ -1965,16 +2245,16 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
       </GlassCard>
       {related.length > 0 && <div style={{ marginTop: 28 }}>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: T.red, marginBottom: 14 }}>{lang==="zh"?"相关产品":"Related"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        <div className="bsd-related-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           {related.map((r,i) => (
             <GlassCard key={i} style={{ padding: 14 }}>
               <div onClick={() => { onViewDetail(r); window.scrollTo?.({top:0,behavior:"smooth"}); }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  {getProductImage(r.sku) ? <img src={getProductImage(r.sku)} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, background: T.redLight }} /> : <span style={{ fontSize: 24 }}>{meta.icon}</span>}
+                  {resolveProductImage(imageMap, r.sku, "thumb") ? <img src={resolveProductImage(imageMap, r.sku, "thumb")} alt="" loading="lazy" decoding="async" width={32} height={32} onError={e => handleImgFallback(e, imageMap, r.sku)} style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, background: T.redLight }} /> : <span style={{ fontSize: 24 }}>{meta.icon}</span>}
                   <code style={{ fontSize: 10, color: T.red, background: T.redLight, padding: "1px 5px", borderRadius: 3 }}>{r.sku}</code>
                 </div>
-                {productPath(r, PRODUCT_INDEX)
-                  ? <a href={productPath(r, PRODUCT_INDEX)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(r);}}} style={{ display:"block", fontSize:12, fontWeight:600, color:T.red, lineHeight:1.3, textDecoration:"none" }}>{tName(lang, r.name)||"—"}</a>
+                {productIndex && productPath(r, productIndex)
+                  ? <a href={productPath(r, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(r);}}} style={{ display:"block", fontSize:12, fontWeight:600, color:T.red, lineHeight:1.3, textDecoration:"none" }}>{tName(lang, r.name)||"—"}</a>
                   : <div style={{ fontSize: 12, fontWeight: 600, color: T.red, lineHeight: 1.3 }}>{tName(lang, r.name)||"—"}</div>}
               </div>
             </GlassCard>
@@ -1982,7 +2262,7 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
         </div>
       </div>}
 
-      {showInquiry && <InquiryModal lang={lang} product={p} onClose={() => setShowInquiry(false)} />}
+      {inquiryMode && <InquiryModal lang={lang} product={p} mode={inquiryMode} onClose={() => setInquiryMode(null)} />}
     </div>
   );
 }
@@ -1990,10 +2270,57 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail }) {
 // ═══════ MAIN APP ═══════
 export default function BoosterHomepage() {
   const [lang, setLang] = useState("zh");
-  const [section, setSection] = useState(() => readRoute(window.location.pathname, PRODUCT_INDEX).section);
+  const initialPath = useMemo(() => classifyInitialPath(window.location.pathname), []);
+  const [section, setSection] = useState(initialPath.section);
   const [search, setSearch] = useState("");
-  const [productCat, setProductCat] = useState(null);
-  const [detailProduct, setDetailProduct] = useState(() => readRoute(window.location.pathname, PRODUCT_INDEX).product);
+  const [productCat, setProductCat] = useState(initialPath.category || null);
+  const [detailProduct, setDetailProduct] = useState(null);
+  const [catalog, setCatalog] = useState(() => getCachedCatalog());
+  const [catalogLoading, setCatalogLoading] = useState(initialPath.needsCatalog && !getCachedCatalog());
+  const videoRef = useRef(null);
+
+  const [allowVideo] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    return !reduced && window.innerWidth >= 768;
+  });
+
+  const ensureCatalog = useCallback(() => {
+    const cached = getCachedCatalog();
+    if (cached) return Promise.resolve(cached);
+    setCatalogLoading(true);
+    return loadCatalog().then((loaded) => {
+      setCatalog(loaded);
+      setCatalogLoading(false);
+      return loaded;
+    });
+  }, []);
+
+  // Load catalog on direct navigation to /products/, /products/category/<slug>/, or /products/<sku>/
+  useEffect(() => {
+    if (!initialPath.needsCatalog) return;
+    let active = true;
+    ensureCatalog().then((loaded) => {
+      if (!active) return;
+      const route = readRoute(window.location.pathname, loaded.index);
+      setSection(route.section);
+      setDetailProduct(route.product);
+      if (route.category) setProductCat(route.category);
+    });
+    return () => { active = false; };
+  }, [initialPath.needsCatalog, ensureCatalog]);
+
+  // Pause background video when tab is hidden
+  useEffect(() => {
+    const onVis = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      if (document.hidden) v.pause();
+      else v.play?.().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   // ── Auth state ──
   const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem("bsd_user") || "null"); } catch { return null; } });
@@ -2006,55 +2333,99 @@ export default function BoosterHomepage() {
 
   useEffect(() => {
     const onPopState = () => {
-      const route = readRoute(window.location.pathname, PRODUCT_INDEX);
-      setSection(route.section);
-      setDetailProduct(route.product);
-      setProductCat(null);
+      const pathname = window.location.pathname;
+      const classified = classifyInitialPath(pathname);
+      setProductCat(classified.category || null);
       setSearch("");
+      if (classified.needsCatalog) {
+        ensureCatalog().then((loaded) => {
+          const route = readRoute(pathname, loaded.index);
+          setSection(route.section);
+          setDetailProduct(route.product);
+          setProductCat(route.category || null);
+        });
+      } else {
+        setSection(classified.section);
+        setDetailProduct(null);
+      }
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [ensureCatalog]);
 
   useEffect(() => {
-    const path = detailProduct && productPath(detailProduct, PRODUCT_INDEX);
-    const canonical = `${SITE_URL}${path || (section === "products" ? "/products/" : "/")}`;
-    const title = path ? `${detailProduct.name || detailProduct.sku} · ${detailProduct.sku} | 博仕达生物`
-      : section === "products" ? "产品中心 | 博仕达生物" : "博仕达生物 - 一站式实验室解决方案 | 分子生物学试剂 | 实验耗材 | 化学试剂";
+    const prodPath = detailProduct && catalog?.index && productPath(detailProduct, catalog.index);
+    let urlPath = sectionPath(section);
+    let title = "博仕达生物 - 一站式实验室解决方案 | 分子生物学试剂 | 实验耗材 | 化学试剂";
+    let description = "博仕达生物 - 一站式实验室解决方案提供商，提供高质量的国产化替代方案，涵盖分子生物学、实验耗材、化学试剂、质控分析工具酶和质控试剂盒等产品。";
+
+    if (prodPath) {
+      urlPath = prodPath;
+      title = `${detailProduct.name || detailProduct.sku} · ${detailProduct.sku} | 博仕达生物`;
+      description = `${detailProduct.name || detailProduct.sku}，货号 ${detailProduct.sku}，规格 ${detailProduct.spec || "请咨询"}。博仕达生物产品信息与询价。`;
+    } else if (section === "products" && productCat) {
+      urlPath = categoryPath(productCat);
+      title = `${productCat} - 博仕达生物产品中心`;
+      description = `浏览博仕达生物${productCat}全系列产品，按货号查询规格参数并在线询价。`;
+    } else if (section === "products") {
+      urlPath = "/products/";
+      title = "产品中心 | 博仕达生物 - 1900+ 实验室耗材与科研试剂";
+      description = "浏览博仕达生物实验耗材、化学试剂、超滤离心管、质控分析工具酶与质控试剂盒，按货号查看产品信息并在线询价。";
+    } else if (section === "solutions") {
+      title = "节能空调解决方案 - IDC机房/热泵/R436C制冷剂 | 博仕达生物";
+      description = "博仕达节能空调解决方案涵盖机房空调节能机组、片式蒸发冷高效热泵机组、多联机预冷节能器、R436C高效节能制冷剂与中温水大温差机组。";
+    } else if (section === "peptideqc") {
+      title = "多肽 QC 全链质控解决方案 - FDA 0.5%杂质 & EMA合规 | 博仕达生物";
+      description = "应对多肽产能放大与FDA 0.5%杂质红线、EMA最新指南（367182/2025），博仕达提供测序级酶切矩阵、HCP/HCD/rFC试剂盒与多肽专用分离耗材。";
+    } else if (section === "contact") {
+      title = "联系我们 - 上海博仕达生物工程有限公司 | 询价与技术支持";
+      description = "联系上海博仕达生物工程有限公司（BOOSTER），获取实验室耗材、科研试剂、多肽QC及节能方案报价与技术支持。";
+    }
+
+    const canonical = `${SITE_URL}${urlPath}`;
     document.title = title;
     document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
-    const description = path ? `${detailProduct.name || detailProduct.sku}，货号 ${detailProduct.sku}，规格 ${detailProduct.spec || "请咨询"}。博仕达生物产品信息与询价。`
-      : section === "products" ? "浏览博仕达生物实验耗材、试剂与质控产品，按货号查看产品信息并询价。"
-      : "博仕达生物 - 一站式实验室解决方案提供商，提供高质量的国产化替代方案，涵盖分子生物学、实验耗材、化学试剂、质控分析工具酶和质控试剂盒等产品。";
     document.querySelector('meta[name="description"]')?.setAttribute("content", description);
-  }, [section, detailProduct]);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", description);
+  }, [section, detailProduct, productCat, catalog]);
 
   const go = useCallback((s) => {
-    const path = s === "products" ? "/products/" : "/";
+    const path = sectionPath(s);
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    if (s === "products") ensureCatalog();
     setSection(s); setDetailProduct(null);
     if(s!=="products"){ setProductCat(null); setSearch(""); }
     window.scrollTo?.({top:0,behavior:"smooth"});
-  }, []);
+  }, [ensureCatalog]);
   const goProducts = useCallback((cat) => {
-    if (window.location.pathname !== "/products/") window.history.pushState({}, "", "/products/");
+    const path = cat ? categoryPath(cat) : "/products/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    ensureCatalog();
     setProductCat(cat||null); setSection("products"); setDetailProduct(null);
     window.scrollTo?.({top:0,behavior:"smooth"});
-  }, []);
+  }, [ensureCatalog]);
   const goDetail = useCallback((p) => {
-    const path = productPath(p, PRODUCT_INDEX) || "/products/";
+    const path = (catalog?.index && productPath(p, catalog.index)) || "/products/";
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
     setDetailProduct(p); setSection("products");
     window.scrollTo?.({top:0,behavior:"smooth"});
-  }, []);
+  }, [catalog]);
+
+  const showBgVideo = allowVideo && section === "home";
 
   return (
-    <div style={{ fontFamily: T.font, color: T.red, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: "transparent", position: "relative" }}>
-      {/* ── 全页固定视频背景 ── */}
-      <video autoPlay muted loop playsInline style={{ position: "fixed", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: -2, pointerEvents: "none", transform: "scaleX(-1)" }}>
-        <source src="/hero-bg.mp4" type="video/mp4" />
-      </video>
-      <div style={{ position: "fixed", inset: 0, background: "rgba(255,255,255,0.60)", zIndex: -1, pointerEvents: "none" }} />
+    <div style={{ fontFamily: T.font, color: T.red, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: showBgVideo ? "transparent" : "radial-gradient(circle at 15% 10%, #FFF1F3 0%, #FFFFFF 45%, #FFF7F8 100%)", position: "relative" }}>
+      {/* ── 首页桌面端视频背景（移动端及其他页面使用轻量渐变） ── */}
+      {showBgVideo && <>
+        <video ref={videoRef} autoPlay muted loop playsInline preload="metadata" style={{ position: "fixed", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: -2, pointerEvents: "none", transform: "scaleX(-1)" }}>
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(255,255,255,0.60)", zIndex: -1, pointerEvents: "none" }} />
+      </>}
       <style>{`
         * { box-sizing: border-box; margin: 0; }
         input::placeholder, textarea::placeholder { color: #E8A0AB; }
@@ -2079,8 +2450,8 @@ export default function BoosterHomepage() {
         <ContactSection lang={lang} />
       </>}
 
-      {section === "products" && !detailProduct && <ProductCatalogSection lang={lang} initialCat={productCat} search={search} onViewDetail={goDetail} />}
-      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => goProducts(null)} onViewDetail={goDetail} />}
+      {section === "products" && !detailProduct && <ProductCatalogSection lang={lang} initialCat={productCat} search={search} onSearchChange={setSearch} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} loading={catalogLoading} />}
+      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => goProducts(null)} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} />}
       {section === "notfound" && <main style={{ maxWidth: 1000, margin: "48px auto", padding: 32 }}><h1>页面未找到</h1><a href="/">返回首页</a></main>}
       {section === "solutions" && <><SolutionsSection lang={lang} /><StatsBar lang={lang} /></>}
       {section === "peptideqc" && <PeptideQCSection lang={lang} onContact={() => go("contact")} onProducts={() => go("products")} />}
@@ -2088,7 +2459,7 @@ export default function BoosterHomepage() {
       {section === "contact" && <ContactSection lang={lang} />}
 
       <TrustedBy lang={lang} />
-      <Footer lang={lang} />
+      <Footer lang={lang} onSelectCat={goProducts} onNavigate={go} />
 
       {/* ── Auth Modals ── */}
       {showLogin && <LoginModal lang={lang} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} onSwitchRegister={() => { setShowLogin(false); setShowRegister(true); }} />}

@@ -1,18 +1,31 @@
+import {
+  getCorsHeaders,
+  escapeHtml,
+  sanitizeHeaderText,
+  isValidEmail,
+} from './_security.js';
+
 export async function onRequestPost(context) {
   const { request, env } = context;
-
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Type': 'application/json',
-  };
+  const headers = getCorsHeaders(request);
 
   try {
     const body = await request.json();
-    const { name, email, company, message } = body;
+    const name = String(body?.name ?? '').trim().slice(0, 100);
+    const email = String(body?.email ?? '').trim().slice(0, 254);
+    const company = String(body?.company ?? '').trim().slice(0, 200);
+    const message = String(body?.message ?? '').trim().slice(0, 5000);
+
+    // Honeypot anti-spam field
+    if (body?.website) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers });
+    }
 
     if (!name || !message) {
       return new Response(JSON.stringify({ error: '姓名和留言内容不能为空' }), { status: 400, headers });
+    }
+    if (email && !isValidEmail(email)) {
+      return new Response(JSON.stringify({ error: '邮箱格式不正确' }), { status: 400, headers });
     }
 
     const apiKey = env.RESEND_API_KEY;
@@ -28,19 +41,19 @@ export async function onRequestPost(context) {
   <table style="width: 100%; border-collapse: collapse;">
     <tr>
       <td style="padding: 10px; background: #f9f9f9; font-weight: bold; width: 120px;">姓名</td>
-      <td style="padding: 10px; border-left: 3px solid #C8102E;">${name}</td>
+      <td style="padding: 10px; border-left: 3px solid #C8102E;">${escapeHtml(name)}</td>
     </tr>
     <tr>
       <td style="padding: 10px; background: #f9f9f9; font-weight: bold;">邮箱</td>
-      <td style="padding: 10px; border-left: 3px solid #C8102E;">${email || '未填写'}</td>
+      <td style="padding: 10px; border-left: 3px solid #C8102E;">${escapeHtml(email || '未填写')}</td>
     </tr>
     <tr>
       <td style="padding: 10px; background: #f9f9f9; font-weight: bold;">单位名称</td>
-      <td style="padding: 10px; border-left: 3px solid #C8102E;">${company || '未填写'}</td>
+      <td style="padding: 10px; border-left: 3px solid #C8102E;">${escapeHtml(company || '未填写')}</td>
     </tr>
     <tr>
       <td style="padding: 10px; background: #f9f9f9; font-weight: bold; vertical-align: top;">留言内容</td>
-      <td style="padding: 10px; border-left: 3px solid #C8102E; white-space: pre-wrap;">${message}</td>
+      <td style="padding: 10px; border-left: 3px solid #C8102E; white-space: pre-wrap;">${escapeHtml(message)}</td>
     </tr>
   </table>
   <p style="color: #999; font-size: 12px; margin-top: 20px;">
@@ -58,7 +71,7 @@ export async function onRequestPost(context) {
         from: 'Booster官网留言 <service@tflabservice.com>',
         to: ['service@tflabservice.com'],
         reply_to: email || undefined,
-        subject: `【官网留言】${name} - ${company || ''}`,
+        subject: `【官网留言】${sanitizeHeaderText(name, 50)} - ${sanitizeHeaderText(company, 50)}`,
         html: emailBody,
       }),
     });
@@ -77,12 +90,6 @@ export async function onRequestPost(context) {
   }
 }
 
-export async function onRequestOptions() {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export async function onRequestOptions(context) {
+  return new Response(null, { headers: getCorsHeaders(context.request) });
 }

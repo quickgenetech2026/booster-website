@@ -4,11 +4,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    target: 'es2015',
-    minify: false,
+    target: 'es2018',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: {},
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+        },
       },
     },
   },

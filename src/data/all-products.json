@@ -10550,18 +10550,18 @@
   {
     "cat": "质控分析工具酶",
     "sub": "工具酶",
-    "sku": "BSDT80406-3.5",
+    "sku": "BSDT80406-5",
     "name": "IdeS蛋白酶",
-    "spec": "3.5KU",
+    "spec": "5KU",
     "price": 1680,
     "brand": "Booster"
   },
   {
     "cat": "质控分析工具酶",
     "sub": "工具酶",
-    "sku": "BSDT80407-1",
+    "sku": "BSDT80407-5",
     "name": "IdeZ蛋白酶",
-    "spec": "1KU",
+    "spec": "5KU",
     "price": 850,
     "brand": "Booster"
   },
@@ -17705,9 +17705,9 @@
   {
     "cat": "质控分析工具酶",
     "sub": "工具酶",
-    "sku": "BSDT80409-20",
+    "sku": "BSDT80409-100",
     "name": "重组Glu-C蛋白酶,冻干",
-    "spec": "20µg",
+    "spec": "100µg",
     "price": 1500,
     "brand": "Booster"
   },

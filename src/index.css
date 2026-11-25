@@ -138,6 +138,26 @@ html {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+.bsd-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 16px;
+}
+.bsd-product-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.bsd-product-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(200, 16, 46, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
 
 @media (max-width: 960px) {
   .bsd-hero-grid {

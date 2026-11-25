@@ -1,4 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import {
+  FlaskConical, Microscope, TestTubes, Pill, Dna, Atom, Package,
+  Search, Mail, Phone, MapPin, User, Clock, FileText, CheckCircle2,
+  AlertTriangle, Sparkles, ArrowRight, ArrowLeft, Building2, Factory,
+  Wind, Snowflake, Droplets, Zap, Wrench, Award, ShieldCheck, BarChart3,
+  LayoutGrid, List, Layers, Activity,
+} from "lucide-react";
 import { loadCatalog, getCachedCatalog, resolveProductImage } from "./data/catalogLoader.js";
 import { productPath, readRoute, sectionPath, categoryPath, SLUG_TO_CATEGORY } from "./product-routes.js";
 import "./BorderGlow.css";
@@ -83,15 +90,28 @@ function BorderGlow({
 }
 
 const T = {
-  red: "#C8102E", redDark: "#9B0023", redLight: "#FFE8EC", redSoft: "#FFF1F3",
-  navy: "#C8102E", blue: "#C8102E", blueLight: "#FFE8EC",
-  bg: "#FFFFFF", bgSoft: "#FFF5F7", bgDark: "#1A1A2E",
-  textPrimary: "#C8102E", textSecondary: "#E0465A", border: "#F5D0D6",
+  red: "#C8102E", redDark: "#9B0023", redLight: "#FFF0F2", redSoft: "#F8FAFC",
+  navy: "#111827", blue: "#C8102E", blueLight: "#FFF0F2",
+  bg: "#FFFFFF", bgSoft: "#F8FAFC", bgDark: "#0F172A",
+  textPrimary: "#111827", textSecondary: "#4B5563", textMuted: "#6B7280", border: "#E5E7EB",
   fontHead: '"Fustat","SF Pro Display",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif',
   font: '"Inter","SF Pro Text",-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif',
-  shadow: "0 1px 10px rgba(0,0,0,0.05)", shadowHover: "0 8px 30px rgba(0,0,0,0.08)",
+  shadow: "0 1px 10px rgba(15,23,42,0.05)", shadowHover: "0 10px 30px rgba(15,23,42,0.09)",
   radius: 16,
 };
+
+function CatIcon({ cat, size = 16, color = T.red }) {
+  const props = { size, color, strokeWidth: 1.9, style: { flexShrink: 0 } };
+  switch (cat) {
+    case "实验耗材": return <TestTubes {...props} />;
+    case "质控分析工具酶": return <Microscope {...props} />;
+    case "超滤离心管": return <FlaskConical {...props} />;
+    case "质控试剂盒": return <Pill {...props} />;
+    case "早期研发": return <Dna {...props} />;
+    case "化学试剂与小分子": return <Atom {...props} />;
+    default: return <Package {...props} />;
+  }
+}
 
 // ─── Liquid Glass 样式常量 ────────────────────────────────────────
 const LG = {
@@ -312,9 +332,9 @@ function AnimNum({ value, suffix = "", duration = 2000 }) {
 // ═══════ Mac Glassmorphism Card ═══════
 function GlassCard({ children, style, hover = true }) {
   return (
-    <div style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px) saturate(180%)", WebkitBackdropFilter: "blur(20px) saturate(180%)", borderRadius: T.radius, border: "1px solid rgba(200,16,46,0.08)", boxShadow: "0 4px 24px rgba(200,16,46,0.04), inset 0 1px 0 rgba(255,255,255,0.8)", transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)", cursor: hover ? "pointer" : "default", ...style }}
-      onMouseEnter={hover ? e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(200,16,46,0.08), inset 0 1px 0 rgba(255,255,255,0.8)"; } : undefined}
-      onMouseLeave={hover ? e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(200,16,46,0.04), inset 0 1px 0 rgba(255,255,255,0.8)"; } : undefined}>
+    <div style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)", borderRadius: T.radius, border: "1px solid rgba(15,23,42,0.08)", boxShadow: "0 4px 20px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.9)", transition: "all 0.28s cubic-bezier(0.4,0,0.2,1)", cursor: hover ? "pointer" : "default", ...style }}
+      onMouseEnter={hover ? e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9)"; } : undefined}
+      onMouseLeave={hover ? e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.9)"; } : undefined}>
       {children}
     </div>
   );
@@ -344,8 +364,9 @@ function TopBar({ lang, setLang }) {
   }, [lang]);
   return (
     <div ref={barRef} className="bsd-topbar" style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.92)", fontSize: 12, padding: "6px 0", fontFamily: T.font, textAlign: "center", position: "relative" }}>
-      <span ref={textRef} style={{ fontWeight: 500, letterSpacing: 0.3 }}>
-        {lang === "zh" ? "🎉 2026 新品发布 — 国产替代系列全面升级" : "🎉 2026 New Products — Domestic Alternative Series Fully Upgraded"}
+      <span ref={textRef} style={{ fontWeight: 500, letterSpacing: 0.3, display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={13} strokeWidth={2.2} />
+        {lang === "zh" ? "2026 新品发布 — 国产替代系列全面升级" : "2026 New Products — Domestic Alternative Series Fully Upgraded"}
       </span>
       <div className="bsd-topbar-lang" style={{ position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)", display: "flex", gap: 2 }}>
         {["zh","en"].map(l => (
@@ -628,10 +649,10 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
         {step === 1 && <>
           {/* Tab 切换 */}
           <div style={{ display: "flex", background: "#f5f5f5", borderRadius: 10, padding: 3, marginBottom: 20 }}>
-            {[["email", lang === "zh" ? "📧 邮箱验证" : "📧 Email"], ["phone", lang === "zh" ? "📱 手机号" : "📱 Phone"]].map(([k, label]) => (
+            {[["email", lang === "zh" ? "邮箱验证" : "Email", Mail], ["phone", lang === "zh" ? "手机号" : "Phone", Phone]].map(([k, label, Icon]) => (
               <button key={k} onClick={() => { setTab(k); setContact(""); setError(""); }}
-                style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: tab === k ? 700 : 500, color: tab === k ? "#C8102E" : "#888", background: tab === k ? "#fff" : "transparent", cursor: "pointer", boxShadow: tab === k ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s", fontFamily: "inherit" }}>
-                {label}
+                style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: tab === k ? 700 : 500, color: tab === k ? "#C8102E" : "#6B7280", background: tab === k ? "#fff" : "transparent", cursor: "pointer", boxShadow: tab === k ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Icon size={14} />{label}
               </button>
             ))}
           </div>
@@ -652,7 +673,7 @@ function LoginModal({ lang, onClose, onSuccess, onSwitchRegister }) {
 
         {step === 2 && <>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, padding: "10px 14px", background: "#FFF5F7", borderRadius: 10, border: "1px solid rgba(200,16,46,0.15)" }}>
-            <span style={{ fontSize: 18 }}>📬</span>
+            <Mail size={18} color="#C8102E" />
             <div>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#C8102E" }}>{zh ? "验证码已发送" : "Code Sent"}</p>
               <p style={{ margin: 0, fontSize: 12, color: "#888" }}>{localMode ? (zh ? "本地开发模式，固定验证码：888888" : "Dev mode code: 888888") : (zh ? `已发送至 ${contact}` : `Sent to ${contact}`)}</p>
@@ -1130,7 +1151,7 @@ function HeroSection({ lang, onBrowse, onSearch }) {
               onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}
               style={{ ...LG.primary, borderRadius: 16, padding: "14px 28px", fontSize: 15, fontFamily: T.font, display: "flex", alignItems: "center", gap: 8 }}>
               {lang === "zh" ? "浏览产品目录" : "Browse Products"}
-              <span style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>→</span>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRight size={13} /></span>
             </button>
           </div>
         </div>
@@ -1157,7 +1178,7 @@ function HeroSection({ lang, onBrowse, onSearch }) {
         {/* ── 全宽搜索框 ── */}
         <div style={{ gridColumn: "1 / -1", marginTop: 40 }}>
           <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(24px) saturate(180%)", border: "1.5px solid rgba(200,16,46,0.18)", borderRadius: 20, padding: "6px 8px 6px 22px", boxShadow: "0 8px 40px rgba(200,16,46,0.12), inset 0 1px 0 rgba(255,255,255,0.9)", maxWidth: 720, margin: "0 auto" }}>
-            <span style={{ fontSize: 18, opacity: 0.4, marginRight: 10, flexShrink: 0 }}>🔍</span>
+            <Search size={18} color="#6B7280" style={{ marginRight: 10, flexShrink: 0 }} />
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
@@ -1198,61 +1219,61 @@ function SolutionsSection({ lang }) {
   const [activeSol, setActiveSol] = useState(0);
   const solutions = [
     {
-      icon: "🏢", emoji: "❄️",
+      Icon: Building2, HeroIcon: Snowflake,
       title: lang === "zh" ? "机房空调节能机组" : "Server Room AC Energy Saver",
       tag: lang === "zh" ? "节能30%+" : "Save 30%+",
       desc: lang === "zh" ? "IDC数据机房改造专用机，原空调风冷外机更换为机房空调节能器，制冷节能达30%以上。有效降低PUE指标0.1-0.4，降低空调尖峰用电负荷30%。" : "Dedicated IDC data center retrofit unit. Replace air-cooled outdoor units for 30%+ cooling energy savings, reducing PUE by 0.1-0.4.",
       advantages: lang === "zh"
-        ? [["⚡","节能","制冷节能30%以上，降低PUE 0.1-0.4"],["🕐","节时","一体化设计，安装方便，大大缩短施工时间"],["🔧","维护方便","片式冷凝器模组化设计，方便清洗维护"]]
-        : [["⚡","Energy","30%+ cooling savings, PUE reduced 0.1-0.4"],["🕐","Fast Install","Integrated design, quick on-site deployment"],["🔧","Easy Maintenance","Modular plate condenser, easy to clean"]],
+        ? [[Zap,"节能","制冷节能30%以上，降低PUE 0.1-0.4"],[Clock,"节时","一体化设计，安装方便，大大缩短施工时间"],[Wrench,"维护方便","片式冷凝器模组化设计，方便清洗维护"]]
+        : [[Zap,"Energy","30%+ cooling savings, PUE reduced 0.1-0.4"],[Clock,"Fast Install","Integrated design, quick on-site deployment"],[Wrench,"Easy Maintenance","Modular plate condenser, easy to clean"]],
       scenes: lang === "zh" ? ["数据中心机房","数据传输机房","云机房","企业数据中心"] : ["Data Centers","Telecom Rooms","Cloud Rooms","Enterprise DC"],
       cases: lang === "zh" ? [{name:"上海电信机房",rate:"40%"}] : [{name:"Shanghai Telecom",rate:"40%"}],
       stats: [{v:"30",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"0.4",s:"",l:lang==="zh"?"PUE降低":"PUE Drop"},{v:"40",s:"%",l:lang==="zh"?"案例最高":"Best Case"}],
     },
     {
-      icon: "🏭", emoji: "🌊",
+      Icon: Factory, HeroIcon: Droplets,
       title: lang === "zh" ? "片式蒸发冷高效热泵机组" : "Evaporative Heat Pump System",
       tag: lang === "zh" ? "SCOP 4.5+" : "SCOP 4.5+",
       desc: lang === "zh" ? "采用先进的板管蒸发冷却技术，全系列制冷能效系数(标况4.5以上)远超国家一级能效标准(3.40)。目前能效最高、最节能的中央空调产品。" : "Advanced plate-tube evaporative cooling. SCOP 4.5+ (standard), far exceeding China's Class 1 efficiency (3.40). The most efficient central AC product available.",
       advantages: lang === "zh"
-        ? [["⚡","节能","能效远超国家一级标准，节能15%-30%"],["💧","节水","蒸发冷却技术，耗水量远低于传统冷却塔"],["📐","节地","紧凑设计，占地面积小"]]
-        : [["⚡","Energy","Far exceeds Class 1 standard, 15-30% savings"],["💧","Water","Evaporative cooling uses far less water"],["📐","Space","Compact design, small footprint"]],
+        ? [[Zap,"节能","能效远超国家一级标准，节能15%-30%"],[Droplets,"节水","蒸发冷却技术，耗水量远低于传统冷却塔"],[Layers,"节地","紧凑设计，占地面积小"]]
+        : [[Zap,"Energy","Far exceeds Class 1 standard, 15-30% savings"],[Droplets,"Water","Evaporative cooling uses far less water"],[Layers,"Space","Compact design, small footprint"]],
       scenes: lang === "zh" ? ["商场","GMP厂房","酒店","医院","办公楼","实验室"] : ["Malls","GMP Plants","Hotels","Hospitals","Offices","Labs"],
       cases: lang === "zh" ? [{name:"江苏某光电厂",rate:"30%"},{name:"湖北某产业园",rate:"40%"}] : [{name:"Jiangsu Optics",rate:"30%"},{name:"Hubei Park",rate:"40%"}],
       stats: [{v:"4.5",s:"+",l:"SCOP"},{v:"30",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"15",s:"%",l:lang==="zh"?"节水":"Water Saved"}],
     },
     {
-      icon: "🌀", emoji: "🌬️",
+      Icon: Wind, HeroIcon: Wind,
       title: lang === "zh" ? "多联机预冷节能器" : "VRF Pre-Cooling Energy Saver",
       tag: lang === "zh" ? "节能15%+" : "Save 15%+",
       desc: lang === "zh" ? "适用于任何多联机应用场景。原多联机外机外置多联机预冷节能器，设备节能可达15%以上。分段式设计，运输方便，安装便捷。" : "For any VRF application. External pre-cooler achieves 15%+ energy savings. Modular design for easy transport and installation.",
       advantages: lang === "zh"
-        ? [["⚡","节能","设备节能15%以上"],["📦","安装便捷","分段式设计，现场接水电即可使用"],["🔄","通用性强","适用于任何多联机品牌"]]
-        : [["⚡","Energy","15%+ device energy savings"],["📦","Easy Install","Modular, connect water & power on-site"],["🔄","Universal","Works with any VRF brand"]],
+        ? [[Zap,"节能","设备节能15%以上"],[Package,"安装便捷","分段式设计，现场接水电即可使用"],[Activity,"通用性强","适用于任何多联机品牌"]]
+        : [[Zap,"Energy","15%+ device energy savings"],[Package,"Easy Install","Modular, connect water & power on-site"],[Activity,"Universal","Works with any VRF brand"]],
       scenes: lang === "zh" ? ["GMP厂房","办公楼","实验室"] : ["GMP Plants","Offices","Labs"],
       cases: lang === "zh" ? [{name:"浙江某办公楼",rate:"23%"},{name:"美团总部大楼",rate:"20%"}] : [{name:"Zhejiang Office",rate:"23%"},{name:"Meituan HQ",rate:"20%"}],
       stats: [{v:"15",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"23",s:"%",l:lang==="zh"?"案例最高":"Best Case"},{v:"0",s:"",l:lang==="zh"?"停机改造":"Downtime"}],
     },
     {
-      icon: "🧊", emoji: "🌡️",
+      Icon: Snowflake, HeroIcon: Snowflake,
       title: lang === "zh" ? "R436C高效节能制冷剂" : "R436C High-Efficiency Refrigerant",
       tag: lang === "zh" ? "用量省40%" : "40% Less Usage",
       desc: lang === "zh" ? "密度仅为R22的40%，充注量仅为R22的40%；压力低效率高，吸排气温度均低于R22，汽化潜热远超R22。适用于家用空调、中央空调、冷冻冷藏、热泵等。" : "Density only 40% of R22, charging volume 40% of R22. Lower pressure, higher efficiency. Applicable to residential AC, central AC, refrigeration, and heat pumps.",
       advantages: lang === "zh"
-        ? [["📉","密度小","充注量仅为R22的40%，降低压缩机负荷"],["⚡","效率高","压力低，提高压缩机效率"],["🔥","热损少","吸排气温度低，降低不可逆热损失"]]
-        : [["📉","Low Density","40% charge of R22, reduces compressor load"],["⚡","Efficient","Lower pressure, higher compressor efficiency"],["🔥","Less Loss","Lower temps reduce irreversible heat loss"]],
+        ? [[Activity,"密度小","充注量仅为R22的40%，降低压缩机负荷"],[Zap,"效率高","压力低，提高压缩机效率"],[ShieldCheck,"热损少","吸排气温度低，降低不可逆热损失"]]
+        : [[Activity,"Low Density","40% charge of R22, reduces compressor load"],[Zap,"Efficient","Lower pressure, higher compressor efficiency"],[ShieldCheck,"Less Loss","Lower temps reduce irreversible heat loss"]],
       scenes: lang === "zh" ? ["家用空调","风冷模块机","冷藏冷冻","中央冷水机组","冰水机","热泵"] : ["Home AC","Air-cooled Modules","Refrigeration","Chillers","Ice Machines","Heat Pumps"],
       cases: lang === "zh" ? [{name:"宝钢（三菱）",rate:"33.3%"},{name:"同济大学（日立）",rate:"24.3%"},{name:"中国航天（美的）",rate:"22%"}] : [{name:"Baosteel",rate:"33.3%"},{name:"Tongji Univ",rate:"24.3%"},{name:"CASC",rate:"22%"}],
       stats: [{v:"40",s:"%",l:lang==="zh"?"用量节省":"Less Charge"},{v:"33",s:"%",l:lang==="zh"?"案例最高":"Best Case"},{v:"0",s:"",l:"ODP"}],
     },
     {
-      icon: "💧", emoji: "🌊",
+      Icon: Droplets, HeroIcon: Droplets,
       title: lang === "zh" ? "中温水大温差机组" : "Medium-Temp Large Delta-T System",
       tag: lang === "zh" ? "系统节能15-20%" : "System Save 15-20%",
       desc: lang === "zh" ? "二冷9/17℃中温水大温差水系统，中温水末端减少除湿，主机节能12%以上，冷冻水泵节能4%，供回水管道减少损耗2-4%，系统简单故障率低。" : "9/17°C medium-temp large delta-T system. Reduces dehumidification, 12%+ chiller savings, 4% pump savings, 2-4% pipe loss reduction.",
       advantages: lang === "zh"
-        ? [["⚡","主机节能","中温水主机节能12%以上"],["💧","减少除湿","末端减少无效除湿，提升舒适度"],["🔧","系统简单","故障率低，减少维修费"]]
-        : [["⚡","Chiller","12%+ chiller energy savings"],["💧","Less Dehum","Reduces unnecessary dehumidification"],["🔧","Simple","Low failure rate, less maintenance"]],
+        ? [[Zap,"主机节能","中温水主机节能12%以上"],[Droplets,"减少除湿","末端减少无效除湿，提升舒适度"],[Wrench,"系统简单","故障率低，减少维修费"]]
+        : [[Zap,"Chiller","12%+ chiller energy savings"],[Droplets,"Less Dehum","Reduces unnecessary dehumidification"],[Wrench,"Simple","Low failure rate, less maintenance"]],
       scenes: lang === "zh" ? ["商场","酒店","医院","办公楼"] : ["Malls","Hotels","Hospitals","Offices"],
       cases: lang === "zh" ? [{name:"苏州某企业大楼",rate:"25.5%"}] : [{name:"Suzhou Enterprise",rate:"25.5%"}],
       stats: [{v:"20",s:"%",l:lang==="zh"?"系统节能":"Sys Savings"},{v:"12",s:"%+",l:lang==="zh"?"主机节能":"Chiller"},{v:"25.5",s:"%",l:lang==="zh"?"案例最高":"Best Case"}],
@@ -1272,13 +1293,16 @@ function SolutionsSection({ lang }) {
 
         {/* Solution Tabs */}
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 32, flexWrap: "wrap" }}>
-          {solutions.map((s, i) => (
-            <button key={i} onClick={() => setActiveSol(i)} className="lg-btn"
-              onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}
-              style={{ ...(activeSol===i ? LG.primary : LG.ghost), borderRadius: 24, padding: "8px 20px", fontSize: 13, fontFamily: T.font, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>{s.icon}</span> {s.title}
-            </button>
-          ))}
+          {solutions.map((s, i) => {
+            const TabIcon = s.Icon;
+            return (
+              <button key={i} onClick={() => setActiveSol(i)} className="lg-btn"
+                onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}
+                style={{ ...(activeSol===i ? LG.primary : LG.ghost), borderRadius: 24, padding: "8px 18px", fontSize: 13, fontFamily: T.font, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <TabIcon size={15} /> {s.title}
+              </button>
+            );
+          })}
         </div>
 
         {/* Active Solution Detail */}
@@ -1299,10 +1323,12 @@ function SolutionsSection({ lang }) {
             {/* Left: Description + Advantages */}
             <div>
               <GlassCard hover={false} style={{ padding: "28px", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                  <span style={{ fontSize: 32 }}>{sol.emoji}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <sol.HeroIcon size={22} color={T.red} />
+                  </div>
                   <div>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, color: T.navy, margin: 0 }}>{sol.title}</h3>
+                    <h3 style={{ fontSize: 20, fontWeight: 700, color: T.navy, margin: "0 0 4px" }}>{sol.title}</h3>
                     <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLight, padding: "2px 8px", borderRadius: 4 }}>{sol.tag}</span>
                   </div>
                 </div>
@@ -1311,9 +1337,11 @@ function SolutionsSection({ lang }) {
 
               {/* Advantages */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {sol.advantages.map(([icon, title, desc], i) => (
+                {sol.advantages.map(([AdvIcon, title, desc], i) => (
                   <GlassCard key={i} hover={false} style={{ padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>{icon}</span>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <AdvIcon size={17} color={T.red} />
+                    </div>
                     <div><div style={{ fontSize: 14, fontWeight: 600, color: T.navy, marginBottom: 2 }}>{title}</div><div style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.5 }}>{desc}</div></div>
                   </GlassCard>
                 ))}
@@ -1323,21 +1351,25 @@ function SolutionsSection({ lang }) {
             {/* Right: Application Scenes + Cases */}
             <div>
               <GlassCard hover={false} style={{ padding: "24px", marginBottom: 16 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: T.navy, margin: "0 0 14px", textTransform: "uppercase", letterSpacing: 0.5 }}>{lang === "zh" ? "📍 应用场景" : "📍 Applications"}</h4>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: T.navy, margin: "0 0 14px", letterSpacing: 0.3, display: "flex", alignItems: "center", gap: 6 }}>
+                  <MapPin size={15} color={T.red} /> {lang === "zh" ? "应用场景" : "Applications"}
+                </h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {sol.scenes.map((s, i) => (
-                    <span key={i} style={{ background: T.redLight, color: T.red, fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 20, border: `1px solid ${T.border}` }}>{s}</span>
+                    <span key={i} style={{ background: "#F3F4F6", color: T.textPrimary, fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 20, border: `1px solid ${T.border}` }}>{s}</span>
                   ))}
                 </div>
               </GlassCard>
 
               <GlassCard hover={false} style={{ padding: "24px" }}>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: T.navy, margin: "0 0 14px", textTransform: "uppercase", letterSpacing: 0.5 }}>{lang === "zh" ? "📊 案例分享" : "📊 Case Studies"}</h4>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: T.navy, margin: "0 0 14px", letterSpacing: 0.3, display: "flex", alignItems: "center", gap: 6 }}>
+                  <BarChart3 size={15} color={T.red} /> {lang === "zh" ? "案例分享" : "Case Studies"}
+                </h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {sol.cases.map((c, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: T.redLight, borderRadius: 12, border: `1px solid ${T.border}` }}>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: T.red }}>{c.name}</span>
-                      <span style={{ fontSize: 22, fontWeight: 700, color: T.redDark }}>{lang === "zh" ? "节电率 " : "Saved "}{c.rate}</span>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "#F8FAFC", borderRadius: 12, border: `1px solid ${T.border}` }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>{c.name}</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: T.red }}>{lang === "zh" ? "节电率 " : "Saved "}{c.rate}</span>
                     </div>
                   ))}
                 </div>
@@ -1345,8 +1377,10 @@ function SolutionsSection({ lang }) {
 
               {/* Patents note */}
               <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                {[lang === "zh" ? "🏅 多项国家专利" : "🏅 Patents", lang === "zh" ? "📋 国家检测认证" : "📋 Certified"].map((t, i) => (
-                  <div key={i} style={{ flex: 1, background: "#fff", borderRadius: 10, padding: "12px 14px", textAlign: "center", fontSize: 13, fontWeight: 600, color: T.red, border: `1px solid ${T.border}` }}>{t}</div>
+                {[[Award, lang === "zh" ? "多项国家专利" : "Patents"], [ShieldCheck, lang === "zh" ? "国家检测认证" : "Certified"]].map(([BadgeIcon, t], i) => (
+                  <div key={i} style={{ flex: 1, background: "#fff", borderRadius: 10, padding: "12px 14px", textAlign: "center", fontSize: 13, fontWeight: 600, color: T.textPrimary, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <BadgeIcon size={16} color={T.red} /> {t}
+                  </div>
                 ))}
               </div>
             </div>
@@ -1465,11 +1499,11 @@ function PeptideQCSection({ lang, onContact, onProducts }) {
               {zh ? <>面对 <strong style={{ color: T.red }}>FDA 0.5% 杂质红线</strong>与 <strong style={{ color: T.red }}>EMA 最新审查指南（367182/2025）</strong>，博仕达为您提供全产业链质控闭环解决方案。</> : <>Facing <strong style={{ color: T.red }}>FDA 0.5% impurity threshold</strong> & <strong style={{ color: T.red }}>EMA Guideline 367182/2025</strong>, Booster delivers a full-chain QC closed-loop solution.</>}
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button className="lg-btn" onClick={onContact} style={{ ...LG.primary, borderRadius: 10, padding: "12px 28px", fontSize: 14, fontFamily: T.font }} onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}>
-                {zh ? "📬 联系我们获取方案" : "📬 Contact Us"}
+              <button className="lg-btn" onClick={onContact} style={{ ...LG.primary, borderRadius: 10, padding: "12px 24px", fontSize: 14, fontFamily: T.font, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}>
+                <Mail size={16} /> {zh ? "联系我们获取方案" : "Contact Us"}
               </button>
-              <button className="lg-btn" onClick={onProducts} style={{ ...LG.ghost, borderRadius: 10, padding: "12px 28px", fontSize: 14, fontFamily: T.font }} onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}>
-                {zh ? "🔬 浏览相关产品" : "🔬 Browse Products"}
+              <button className="lg-btn" onClick={onProducts} style={{ ...LG.ghost, borderRadius: 10, padding: "12px 24px", fontSize: 14, fontFamily: T.font, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={e => LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}>
+                <Microscope size={16} /> {zh ? "浏览相关产品" : "Browse Products"}
               </button>
             </div>
           </div>
@@ -1831,8 +1865,8 @@ function ContactForm({ lang }) {
         <div style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>{lang === "zh" ? "留言内容" : "Message"}</div>
         <textarea rows={4} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} style={{ ...inputStyle, resize: "vertical" }} />
       </div>
-      {status === "success" && <div style={{ background: "#E8F5E9", color: "#2E7D32", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 14 }}>✅ {lang === "zh" ? "留言已发送，我们会尽快联系您！" : "Message sent!"}</div>}
-      {status === "error" && <div style={{ background: "#FFEBEE", color: "#C62828", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 14 }}>❌ {lang === "zh" ? "发送失败，请发邮件至 service@tflabservice.com" : "Send failed."}</div>}
+      {status === "success" && <div style={{ background: "#ECFDF5", color: "#065F46", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}><CheckCircle2 size={16} /> {lang === "zh" ? "留言已发送，我们会尽快联系您！" : "Message sent!"}</div>}
+      {status === "error" && <div style={{ background: "#FEF2F2", color: "#B91C1C", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}><AlertTriangle size={16} /> {lang === "zh" ? "发送失败，请发邮件至 service@tflabservice.com" : "Send failed."}</div>}
       <button onClick={handleSubmit} disabled={status === "sending"} className="lg-btn"
         onMouseEnter={e => status!=="sending" && LG.hoverOn(e.currentTarget)} onMouseLeave={e => LG.hoverOff(e.currentTarget)}
         style={{ ...LG.primary, borderRadius: 10, padding: "12px 28px", fontSize: 14, fontFamily: T.font, width: "100%", opacity: status === "sending" ? 0.6 : 1, cursor: status === "sending" ? "not-allowed" : "pointer" }}>
@@ -1844,8 +1878,8 @@ function ContactForm({ lang }) {
 
 function ContactSection({ lang }) {
   const info = lang === "zh"
-    ? [{icon:"📍",l:"公司地址",v:"上海市浦东新区锦绣东路2777弄19号楼10层"},{icon:"📞",l:"联系电话",v:"139-1641-3233"},{icon:"📧",l:"电子邮箱",v:"service@tflabservice.com"},{icon:"👤",l:"联系人",v:"上海博仕达生物工程有限公司"},{icon:"🕐",l:"工作时间",v:"周一至周五 9:00-18:00"}]
-    : [{icon:"📍",l:"Address",v:"19F-10, 2777 Jinxiu East Rd, Pudong, Shanghai"},{icon:"📞",l:"Phone",v:"139-1641-3233"},{icon:"📧",l:"Email",v:"service@tflabservice.com"},{icon:"👤",l:"Contact",v:"Shanghai Booster Bioengineering Co., Ltd."},{icon:"🕐",l:"Hours",v:"Mon-Fri 9:00-18:00 CST"}];
+    ? [{Icon:MapPin,l:"公司地址",v:"上海市浦东新区锦绣东路2777弄19号楼10层"},{Icon:Phone,l:"联系电话",v:"139-1641-3233"},{Icon:Mail,l:"电子邮箱",v:"service@tflabservice.com"},{Icon:User,l:"联系人",v:"上海博仕达生物工程有限公司"},{Icon:Clock,l:"工作时间",v:"周一至周五 9:00-18:00"}]
+    : [{Icon:MapPin,l:"Address",v:"19F-10, 2777 Jinxiu East Rd, Pudong, Shanghai"},{Icon:Phone,l:"Phone",v:"139-1641-3233"},{Icon:Mail,l:"Email",v:"service@tflabservice.com"},{Icon:User,l:"Contact",v:"Shanghai Booster Bioengineering Co., Ltd."},{Icon:Clock,l:"Hours",v:"Mon-Fri 9:00-18:00 CST"}];
   return (
     <section style={{ background: T.redSoft, padding: "64px 0" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
@@ -1857,8 +1891,10 @@ function ContactSection({ lang }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {info.map((c, i) => (
               <GlassCard key={i} hover={false} style={{ padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <span style={{ fontSize: 22 }}>{c.icon}</span>
-                <div><div style={{ fontSize: 12, fontWeight: 600, color: T.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{c.l}</div><div style={{ fontSize: 15, fontWeight: 500, color: T.textPrimary }}>{c.v}</div></div>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <c.Icon size={18} color={T.red} />
+                </div>
+                <div><div style={{ fontSize: 12, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{c.l}</div><div style={{ fontSize: 15, fontWeight: 600, color: T.textPrimary }}>{c.v}</div></div>
               </GlassCard>
             ))}
           </div>
@@ -1963,6 +1999,7 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
   const [activeCat, setActiveCat] = useState(initialCat);
   const [activeSub, setActiveSub] = useState(null);
   const [page, setPage] = useState(0);
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "table"
   useEffect(() => { setActiveCat(initialCat); setActiveSub(null); setPage(0); }, [initialCat]);
   useEffect(() => { setPage(0); }, [search]);
   const goPage = (p) => { setPage(p); window.scrollTo?.({ top: 0, behavior: "smooth" }); };
@@ -1996,10 +2033,10 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
             {lang === "zh" ? "全部" : "All"} ({safeProducts.length})
           </div>
           {cats.map(([cat, count]) => {
-            const meta = CAT_META[cat]||{icon:"📦"}; const isA = activeCat===cat; const subs = subCats[cat]||[];
+            const isA = activeCat===cat; const subs = subCats[cat]||[];
             return (<div key={cat}>
-              <div onClick={() => { setActiveCat(cat); setActiveSub(null); setPage(0); }} style={{ padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: isA ? 600 : 400, color: isA&&!activeSub ? T.red : T.textSecondary, background: isA&&!activeSub ? T.redLight : "transparent", borderLeft: isA&&!activeSub ? `3px solid ${T.red}` : "3px solid transparent", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 14 }}>{meta.icon}</span><span style={{ flex: 1 }}>{tCat(lang, cat)}</span><span style={{ fontSize: 11, color: T.textSecondary }}>{count}</span>
+              <div onClick={() => { setActiveCat(cat); setActiveSub(null); setPage(0); }} style={{ padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: isA ? 600 : 400, color: isA&&!activeSub ? T.red : T.textPrimary, background: isA&&!activeSub ? T.redLight : "transparent", borderLeft: isA&&!activeSub ? `3px solid ${T.red}` : "3px solid transparent", display: "flex", alignItems: "center", gap: 8 }}>
+                <CatIcon cat={cat} size={15} color={isA ? T.red : T.textMuted} /><span style={{ flex: 1 }}>{tCat(lang, cat)}</span><span style={{ fontSize: 11, color: T.textMuted }}>{count}</span>
               </div>
               {isA && subs.length > 1 && subs.map(([sub, sc]) => (
                 <div key={sub} onClick={() => { setActiveSub(activeSub===sub?null:sub); setPage(0); }} style={{ padding: "5px 16px 5px 40px", fontSize: 12, cursor: "pointer", color: activeSub===sub ? T.red : T.textSecondary, fontWeight: activeSub===sub ? 600 : 400 }}>{tSub(lang, sub) || (lang === "zh" ? "其他" : "Other")} ({sc})</div>
@@ -2009,18 +2046,18 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
         </GlassCard>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 260px", display: "flex", alignItems: "center", background: "rgba(255,255,255,0.9)", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "4px 10px 4px 14px" }}>
-            <span style={{ fontSize: 14, opacity: 0.45, marginRight: 8 }}>🔍</span>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 260px", display: "flex", alignItems: "center", background: "#fff", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "4px 10px 4px 14px", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+            <Search size={16} color={T.textMuted} style={{ marginRight: 8, flexShrink: 0 }} />
             <input
               value={search}
               onChange={e => onSearchChange?.(e.target.value)}
               placeholder={lang === "zh" ? "在当前目录中搜索货号、名称、规格..." : "Search SKU, name, or spec in catalog..."}
-              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: T.font, color: "#333", padding: "7px 0" }}
+              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: T.font, color: T.textPrimary, padding: "7px 0" }}
             />
             {search && (
               <button type="button" onClick={() => onSearchChange?.("")} aria-label="Clear search"
-                style={{ background: "rgba(200,16,46,0.10)", border: "none", borderRadius: "50%", width: 22, height: 22, color: T.red, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ background: "#F3F4F6", border: "none", borderRadius: "50%", width: 22, height: 22, color: T.textSecondary, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 ✕
               </button>
             )}
@@ -2028,35 +2065,99 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
           <div style={{ fontSize: 13, color: T.textSecondary, whiteSpace: "nowrap" }}>
             {filtered.length.toLocaleString()} {lang === "zh" ? "个产品" : "products"}
           </div>
+          {/* View mode toggle: Grid / Table */}
+          <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 10, padding: 3, border: `1px solid ${T.border}` }}>
+            {[["grid", LayoutGrid, lang === "zh" ? "卡片视图" : "Grid"], ["table", List, lang === "zh" ? "列表视图" : "Table"]].map(([m, Icon, tip]) => (
+              <button key={m} type="button" onClick={() => setViewMode(m)} title={tip}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "none", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: viewMode === m ? 600 : 500, cursor: "pointer", fontFamily: T.font, background: viewMode === m ? "#fff" : "transparent", color: viewMode === m ? T.red : T.textSecondary, boxShadow: viewMode === m ? "0 1px 4px rgba(15,23,42,0.08)" : "none", transition: "all 0.15s" }}>
+                <Icon size={14} /> {lang === "zh" ? (m === "grid" ? "卡片" : "表格") : (m === "grid" ? "Grid" : "Table")}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {viewMode === "grid" ? (
+          <div className="bsd-product-grid">
+            {pageProducts.map((p, i) => {
+              const imgUrl = resolveProductImage(imageMap, p.sku, "compressed");
+              const pUrl = productIndex && productPath(p, productIndex);
+              return (
+                <div key={p.sku + "-" + i} className="bsd-product-card" onClick={() => onViewDetail(p)}>
+                  <div style={{ height: 158, background: "#F8FAFC", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 14, position: "relative" }}>
+                    {imgUrl ? (
+                      <img src={imgUrl} alt={tName(lang, p.name) || p.sku} loading="lazy" decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                    ) : (
+                      <div style={{ width: 52, height: 52, borderRadius: 14, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <CatIcon cat={p.cat} size={24} color={T.red} />
+                      </div>
+                    )}
+                    <span style={{ position: "absolute", top: 10, left: 10, fontSize: 10, fontWeight: 600, background: "rgba(255,255,255,0.92)", color: T.textSecondary, padding: "2px 8px", borderRadius: 6, border: `1px solid ${T.border}` }}>
+                      {tCat(lang, p.cat)}
+                    </span>
+                  </div>
+                  <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", flex: 1 }}>
+                    <div style={{ marginBottom: 6 }}>
+                      <code style={{ fontSize: 11, fontWeight: 600, color: T.red, background: T.redLight, padding: "2px 7px", borderRadius: 5 }}>{p.sku}</code>
+                    </div>
+                    <div className="line-clamp-2" style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, lineHeight: 1.4, marginBottom: 6, minHeight: 39 }}>
+                      {tName(lang, p.name) || "—"}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 12, flex: 1 }}>
+                      {tSpec(lang, p.spec) || (p.sub ? tSub(lang, p.sub) : "—")}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: `1px solid #F3F4F6` }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>{p.brand || "Booster"}</span>
+                      {pUrl ? (
+                        <a href={pUrl} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} style={{ fontSize: 12, fontWeight: 600, color: T.red, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {lang === "zh" ? "查看详情" : "Details"} <ArrowRight size={13} />
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.red, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {lang === "zh" ? "查看详情" : "Details"} <ArrowRight size={13} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <GlassCard hover={false} style={{ padding: 0, overflow: "hidden" }}>
           <div className="bsd-table-wrap">
-          <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 13, fontFamily: T.font, color: T.red }}>
-            <thead><tr style={{ background: T.redLight }}>
+          <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 13, fontFamily: T.font, color: T.textPrimary }}>
+            <thead><tr style={{ background: "#F8FAFC", borderBottom: `1px solid ${T.border}` }}>
               <th style={thS}>{lang==="zh"?"货号":"SKU"}</th><th style={{...thS,textAlign:"left"}}>{lang==="zh"?"产品名称":"Product"}</th><th style={thS}>{lang==="zh"?"分类":"Category"}</th><th style={thS}>{lang==="zh"?"规格":"Spec"}</th><th style={thS}></th>
             </tr></thead>
             <tbody>
               {pageProducts.map((p,i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${T.border}`, cursor: "pointer" }} onClick={() => onViewDetail(p)}
-                  onMouseEnter={e => e.currentTarget.style.background=T.redSoft} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                  <td style={tdS}><code style={{ fontSize: 11, color: T.red, background: T.redLight, padding: "2px 6px", borderRadius: 4 }}>{p.sku}</code></td>
+                  onMouseEnter={e => e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                  <td style={tdS}><code style={{ fontSize: 11, fontWeight: 600, color: T.red, background: T.redLight, padding: "2px 7px", borderRadius: 4 }}>{p.sku}</code></td>
                   <td style={{...tdS, textAlign:"left"}}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {resolveProductImage(imageMap, p.sku, "thumb") && <img src={resolveProductImage(imageMap, p.sku, "thumb")} alt="" loading="lazy" decoding="async" width={36} height={36} onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 4, background: T.redLight, flexShrink: 0 }} />}
-                      <div><div style={{ fontWeight: 500, color: T.red, lineHeight: 1.3 }}>{tName(lang, p.name)||"—"}</div>{p.sub && <div style={{ fontSize: 11, color: T.textSecondary }}>{tSub(lang, p.sub)}</div>}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {resolveProductImage(imageMap, p.sku, "thumb") ? (
+                        <img src={resolveProductImage(imageMap, p.sku, "thumb")} alt="" loading="lazy" decoding="async" width={44} height={44} onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, background: "#F8FAFC", border: `1px solid ${T.border}`, flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 44, height: 44, borderRadius: 6, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <CatIcon cat={p.cat} size={18} color={T.red} />
+                        </div>
+                      )}
+                      <div><div style={{ fontWeight: 600, color: T.textPrimary, lineHeight: 1.35 }}>{tName(lang, p.name)||"—"}</div>{p.sub && <div style={{ fontSize: 11, color: T.textMuted }}>{tSub(lang, p.sub)}</div>}</div>
                     </div>
                   </td>
-                  <td style={tdS}><span style={{ fontSize: 11, background: T.redLight, padding: "2px 7px", borderRadius: 4, color: T.red }}>{tCat(lang, p.cat)}</span></td>
+                  <td style={tdS}><span style={{ fontSize: 11, background: "#F3F4F6", padding: "3px 8px", borderRadius: 6, color: T.textSecondary, fontWeight: 500 }}>{tCat(lang, p.cat)}</span></td>
                   <td style={tdS}><span style={{ fontSize: 12, color: T.textSecondary }}>{tSpec(lang, p.spec)||"—"}</span></td>
                   <td style={tdS}>{productIndex && productPath(p, productIndex)
-                    ? <a href={productPath(p, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
-                    : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"4px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}</td>
+                    ? <a href={productPath(p, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
+                    : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           </div>
         </GlassCard>
+        )}
         {totalPages > 1 && <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 16, flexWrap: "wrap" }}>
           <PgBtn l="‹" d={page===0} o={() => goPage(page-1)} />
           {pgn(page, totalPages).map((p,i) => p==="..."?<span key={i} style={{padding:"0 4px",color:T.textSecondary}}>…</span>:<PgBtn key={i} l={String(p+1)} a={p===page} o={() => goPage(p)} />)}
@@ -2121,16 +2222,18 @@ function InquiryModal({ lang, product: p, mode = "quote", onClose }) {
         {/* 头部 */}
         <div style={{ background: "linear-gradient(135deg,#9B0023,#C8102E)", padding: "22px 28px 18px", position: "relative" }}>
           <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "rgba(255,255,255,0.2)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-          <h2 style={{ color: "#fff", margin: 0, fontSize: 19, fontWeight: 800 }}>{isDatasheet ? (zh ? "📄 申请产品说明书 / CoA" : "📄 Request Datasheet / CoA") : (zh ? "📧 产品询价" : "📧 Product Inquiry")}</h2>
+          <h2 style={{ color: "#fff", margin: 0, fontSize: 19, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>{isDatasheet ? <><FileText size={19} /> {zh ? "申请产品说明书 / CoA" : "Request Datasheet / CoA"}</> : <><Mail size={19} /> {zh ? "产品询价" : "Product Inquiry"}</>}</h2>
           <p style={{ color: "rgba(255,255,255,0.8)", margin: "4px 0 0", fontSize: 12 }}>{zh ? "填写后我们将在 1 个工作日内与您联系" : "We'll respond within 1 business day"}</p>
         </div>
 
         <div style={{ padding: "20px 28px 26px" }}>
           {/* 产品信息（只读展示） */}
-          <div style={{ background: "#FFF5F7", border: "1px solid rgba(200,16,46,0.12)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 28, flexShrink: 0 }}>🧪</span>
+          <div style={{ background: "#F8FAFC", border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <CatIcon cat={p.cat} size={20} color={T.red} />
+            </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.red, marginBottom: 2 }}>{tName(lang, p.name) || p.sku}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.textPrimary, marginBottom: 2 }}>{tName(lang, p.name) || p.sku}</div>
               <div style={{ fontSize: 12, color: "#888" }}>
                 <code style={{ background: T.redLight, color: T.red, padding: "1px 6px", borderRadius: 3, fontWeight: 600, marginRight: 8 }}>{p.sku}</code>
                 {p.brand && <span style={{ marginRight: 8 }}>{p.brand}</span>}
@@ -2141,7 +2244,7 @@ function InquiryModal({ lang, product: p, mode = "quote", onClose }) {
 
           {status === "success" ? (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><CheckCircle2 size={46} color="#10B981" /></div>
               <h3 style={{ color: T.red, margin: "0 0 8px", fontSize: 18 }}>{zh ? "询价已发送！" : "Inquiry Sent!"}</h3>
               <p style={{ color: "#666", fontSize: 14, margin: "0 0 20px" }}>{zh ? "我们会在 1 个工作日内通过邮件回复您。" : "We'll reply to your email within 1 business day."}</p>
               <button onClick={onClose} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)}
@@ -2210,24 +2313,24 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, p
       <div onClick={onBack} style={{ fontSize: 13, color: T.red, cursor: "pointer", marginBottom: 16, fontWeight: 500 }}>{lang==="zh"?"← 返回产品列表":"← Back"}</div>
       <GlassCard hover={false} style={{ padding: 0, overflow: "hidden" }}>
         <div className="bsd-detail-card" style={{ display: "flex" }}>
-          <div className="bsd-detail-media" style={{ width: 320, minHeight: 300, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 20, flexShrink: 0 }}>
-            {resolveProductImage(imageMap, p.sku, "compressed") ? <img src={resolveProductImage(imageMap, p.sku, "compressed")} alt={p.name} decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} /> : <div style={{ fontSize: 72, opacity: 0.3 }}>{meta.icon}</div>}
+          <div className="bsd-detail-media" style={{ width: 340, minHeight: 300, background: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center", borderRight: `1px solid ${T.border}`, padding: 24, flexShrink: 0 }}>
+            {resolveProductImage(imageMap, p.sku, "compressed") ? <img src={resolveProductImage(imageMap, p.sku, "compressed")} alt={p.name} decoding="async" onError={e => handleImgFallback(e, imageMap, p.sku)} style={{ maxWidth: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} /> : <div style={{ width: 88, height: 88, borderRadius: 20, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center" }}><CatIcon cat={p.cat} size={42} color={T.red} /></div>}
           </div>
           <div style={{ flex: 1, padding: "24px 28px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLight, padding: "3px 8px", borderRadius: 4 }}>{p.brand}</span>
-              <span style={{ fontSize: 11, background: T.redLight, padding: "3px 8px", borderRadius: 4, color: T.red }}>{tCat(lang, p.cat)}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLight, padding: "3px 9px", borderRadius: 6 }}>{p.brand}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, background: "#F3F4F6", padding: "3px 9px", borderRadius: 6, color: T.textSecondary }}>{tCat(lang, p.cat)}</span>
             </div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: T.red, margin: "0 0 6px", lineHeight: 1.3 }}>{tName(lang, p.name)||p.sku}</h1>
-            <div style={{ fontSize: 13, color: T.textSecondary, marginBottom: 18 }}>{lang==="zh"?"货号":"SKU"}: <code style={{ color: T.red, background: T.redLight, padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{p.sku}</code></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", marginBottom: 20, fontSize: 13 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: T.textPrimary, margin: "0 0 8px", lineHeight: 1.35 }}>{tName(lang, p.name)||p.sku}</h1>
+            <div style={{ fontSize: 13, color: T.textSecondary, marginBottom: 18 }}>{lang==="zh"?"货号":"SKU"}: <code style={{ color: T.red, background: T.redLight, padding: "2px 8px", borderRadius: 5, fontWeight: 600 }}>{p.sku}</code></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 22, fontSize: 13 }}>
               {[[lang==="zh"?"品牌":"Brand",p.brand],[lang==="zh"?"规格":"Spec",tSpec(lang,p.spec)||"—"],[lang==="zh"?"分类":"Category",tCat(lang,p.cat)],[lang==="zh"?"子分类":"Sub",tSub(lang,p.sub)||"—"]].map(([k,v],i) => (
-                <div key={i}><div style={{ fontSize: 11, fontWeight: 600, color: T.textSecondary, textTransform: "uppercase", marginBottom: 2 }}>{k}</div><div style={{ fontWeight: 500, color: T.red }}>{v}</div></div>
+                <div key={i}><div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", marginBottom: 2 }}>{k}</div><div style={{ fontWeight: 600, color: T.textPrimary }}>{v}</div></div>
               ))}
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setInquiryMode("quote")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📧 {lang==="zh"?"立即询价":"Quote"}</button>
-              <button onClick={() => setInquiryMode("datasheet")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.ghost, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font}}>📄 {lang==="zh"?"产品说明书":"Datasheet"}</button>
+              <button onClick={() => setInquiryMode("quote")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font, display:"inline-flex", alignItems:"center", gap:7}}><Mail size={15} /> {lang==="zh"?"立即询价":"Quote"}</button>
+              <button onClick={() => setInquiryMode("datasheet")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.ghost, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font, display:"inline-flex", alignItems:"center", gap:7}}><FileText size={15} /> {lang==="zh"?"产品说明书":"Datasheet"}</button>
             </div>
           </div>
         </div>
@@ -2237,25 +2340,25 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, p
           </div>
           <div style={{ padding: "20px 28px", fontSize: 14, color: T.textSecondary, lineHeight: 1.8, minHeight: 100 }}>
             {tab===0 && <p>{p.brand} {tName(lang, p.name)}{lang==="zh"?"，":". "}{lang==="zh"?`适用于${p.cat}相关应用。`:`For ${tCat("en",p.cat)} applications.`}</p>}
-            {tab===1 && <table style={{width:"100%",borderCollapse:"collapse",fontSize:14,color:T.red}}><tbody>{[[lang==="zh"?"货号":"SKU",p.sku],[lang==="zh"?"品牌":"Brand",p.brand],[lang==="zh"?"规格":"Spec",tSpec(lang,p.spec)||"—"],[lang==="zh"?"分类":"Cat",tCat(lang,p.cat)]].map(([k,v],i) => <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}><td style={{padding:"8px 12px 8px 0",fontWeight:600,width:150,color:T.textSecondary}}>{k}</td><td style={{padding:"8px 0"}}>{v}</td></tr>)}</tbody></table>}
+            {tab===1 && <table style={{width:"100%",borderCollapse:"collapse",fontSize:14,color:T.textPrimary}}><tbody>{[[lang==="zh"?"货号":"SKU",p.sku],[lang==="zh"?"品牌":"Brand",p.brand],[lang==="zh"?"规格":"Spec",tSpec(lang,p.spec)||"—"],[lang==="zh"?"分类":"Cat",tCat(lang,p.cat)]].map(([k,v],i) => <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}><td style={{padding:"8px 12px 8px 0",fontWeight:600,width:150,color:T.textMuted}}>{k}</td><td style={{padding:"8px 0",fontWeight:500}}>{v}</td></tr>)}</tbody></table>}
             {tab===2 && <p>{lang==="zh"?"详细使用说明请参考产品随附说明书。":"See product datasheet for instructions."}</p>}
             {tab===3 && <p>{lang==="zh"?"请按照产品标签储存。常见条件：室温、2-8°C、-20°C。":"Store per label. RT, 2-8°C, or -20°C."}</p>}
           </div>
         </div>
       </GlassCard>
       {related.length > 0 && <div style={{ marginTop: 28 }}>
-        <h3 style={{ fontSize: 17, fontWeight: 700, color: T.red, marginBottom: 14 }}>{lang==="zh"?"相关产品":"Related"}</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: T.textPrimary, marginBottom: 14 }}>{lang==="zh"?"相关产品":"Related"}</h3>
         <div className="bsd-related-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           {related.map((r,i) => (
             <GlassCard key={i} style={{ padding: 14 }}>
               <div onClick={() => { onViewDetail(r); window.scrollTo?.({top:0,behavior:"smooth"}); }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  {resolveProductImage(imageMap, r.sku, "thumb") ? <img src={resolveProductImage(imageMap, r.sku, "thumb")} alt="" loading="lazy" decoding="async" width={32} height={32} onError={e => handleImgFallback(e, imageMap, r.sku)} style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, background: T.redLight }} /> : <span style={{ fontSize: 24 }}>{meta.icon}</span>}
-                  <code style={{ fontSize: 10, color: T.red, background: T.redLight, padding: "1px 5px", borderRadius: 3 }}>{r.sku}</code>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  {resolveProductImage(imageMap, r.sku, "thumb") ? <img src={resolveProductImage(imageMap, r.sku, "thumb")} alt="" loading="lazy" decoding="async" width={36} height={36} onError={e => handleImgFallback(e, imageMap, r.sku)} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, background: "#F8FAFC", border: `1px solid ${T.border}` }} /> : <div style={{ width: 36, height: 36, borderRadius: 6, background: T.redLight, display: "flex", alignItems: "center", justifyContent: "center" }}><CatIcon cat={r.cat} size={18} color={T.red} /></div>}
+                  <code style={{ fontSize: 10, fontWeight: 600, color: T.red, background: T.redLight, padding: "2px 6px", borderRadius: 4 }}>{r.sku}</code>
                 </div>
                 {productIndex && productPath(r, productIndex)
-                  ? <a href={productPath(r, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(r);}}} style={{ display:"block", fontSize:12, fontWeight:600, color:T.red, lineHeight:1.3, textDecoration:"none" }}>{tName(lang, r.name)||"—"}</a>
-                  : <div style={{ fontSize: 12, fontWeight: 600, color: T.red, lineHeight: 1.3 }}>{tName(lang, r.name)||"—"}</div>}
+                  ? <a href={productPath(r, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(r);}}} style={{ display:"block", fontSize:13, fontWeight:600, color:T.textPrimary, lineHeight:1.35, textDecoration:"none" }}>{tName(lang, r.name)||"—"}</a>
+                  : <div style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary, lineHeight: 1.35 }}>{tName(lang, r.name)||"—"}</div>}
               </div>
             </GlassCard>
           ))}
@@ -2418,7 +2521,7 @@ export default function BoosterHomepage() {
   const showBgVideo = allowVideo && section === "home";
 
   return (
-    <div style={{ fontFamily: T.font, color: T.red, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: showBgVideo ? "transparent" : "radial-gradient(circle at 15% 10%, #FFF1F3 0%, #FFFFFF 45%, #FFF7F8 100%)", position: "relative" }}>
+    <div style={{ fontFamily: T.font, color: T.textPrimary, WebkitFontSmoothing: "antialiased", minHeight: "100vh", background: showBgVideo ? "transparent" : "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)", position: "relative" }}>
       {/* ── 首页桌面端视频背景（移动端及其他页面使用轻量渐变） ── */}
       {showBgVideo && <>
         <video ref={videoRef} autoPlay muted loop playsInline preload="metadata" style={{ position: "fixed", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: -2, pointerEvents: "none", transform: "scaleX(-1)" }}>
@@ -2428,7 +2531,7 @@ export default function BoosterHomepage() {
       </>}
       <style>{`
         * { box-sizing: border-box; margin: 0; }
-        input::placeholder, textarea::placeholder { color: #E8A0AB; }
+        input::placeholder, textarea::placeholder { color: #9CA3AF; }
         button:hover { opacity: 0.92; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
@@ -2437,7 +2540,8 @@ export default function BoosterHomepage() {
         @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes lgShimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
         .lg-btn { position:relative; overflow:hidden; }
-        .lg-btn::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.18) 50%,transparent 60%); background-size:200% 100%; animation:lgShimmer 3.5s linear infinite; pointer-events:none; border-radius:inherit; }
+        .lg-btn::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.16) 50%,transparent 60%); background-size:200% 100%; opacity:0; transition:opacity 0.25s; pointer-events:none; border-radius:inherit; }
+        .lg-btn:hover::after { opacity:1; animation:lgShimmer 1.4s linear infinite; }
       `}</style>
       <TopBar lang={lang} setLang={setLang} />
       <NavHeader lang={lang} section={section} setSection={go} user={user} onLogin={() => setShowLogin(true)} onRegister={() => setShowRegister(true)} onLogout={handleLogout} />

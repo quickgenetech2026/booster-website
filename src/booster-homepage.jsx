@@ -4,7 +4,7 @@ import {
   Search, Mail, Phone, MapPin, User, Clock, FileText, CheckCircle2,
   AlertTriangle, Sparkles, ArrowRight, ArrowLeft, Building2, Factory,
   Wind, Snowflake, Droplets, Zap, Wrench, Award, ShieldCheck, BarChart3,
-  LayoutGrid, List, Layers, Activity,
+  LayoutGrid, List, Layers, Activity, ShoppingCart, Plus, Check, Trash2, ChevronDown, HelpCircle,
 } from "lucide-react";
 import { loadCatalog, getCachedCatalog, resolveProductImage } from "./data/catalogLoader.js";
 import { productPath, readRoute, sectionPath, categoryPath, SLUG_TO_CATEGORY } from "./product-routes.js";
@@ -343,28 +343,9 @@ function GlassCard({ children, style, hover = true }) {
 // ═══════ SECTIONS ═══════
 
 function TopBar({ lang, setLang }) {
-  const barRef = useRef(null);
-  const textRef = useRef(null);
-  useEffect(() => {
-    const pt = new Pretext();
-    const apply = () => {
-      const el = textRef.current;
-      const bar = barRef.current;
-      if (!el || !bar) return;
-      const bw = bar.getBoundingClientRect().width;
-      if (!bw) return;
-      const text = lang === "zh" ? "🎉 2026 新品发布 — 国产替代系列全面升级" : "🎉 2026 New Products — Domestic Alternative Series Fully Upgraded";
-      const px = pt.fitSize(text, "500 {S}px Inter", 10, 16, bw * 0.62) ?? 12;
-      el.style.fontSize = px + "px";
-    };
-    apply();
-    const ro = new ResizeObserver(apply);
-    if (barRef.current) ro.observe(barRef.current);
-    return () => ro.disconnect();
-  }, [lang]);
   return (
-    <div ref={barRef} className="bsd-topbar" style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.92)", fontSize: 12, padding: "6px 0", fontFamily: T.font, textAlign: "center", position: "relative" }}>
-      <span ref={textRef} style={{ fontWeight: 500, letterSpacing: 0.3, display: "inline-flex", alignItems: "center", gap: 6 }}>
+    <div className="bsd-topbar" style={{ background: "linear-gradient(90deg,#9B0023,#C8102E,#9B0023)", color: "rgba(255,255,255,0.94)", fontSize: "clamp(11px, 1.1vw, 13px)", padding: "7px 16px", fontFamily: T.font, textAlign: "center", position: "relative" }}>
+      <span style={{ fontWeight: 500, letterSpacing: 0.3, display: "inline-flex", alignItems: "center", gap: 6 }}>
         <Sparkles size={13} strokeWidth={2.2} />
         {lang === "zh" ? "2026 新品发布 — 国产替代系列全面升级" : "2026 New Products — Domestic Alternative Series Fully Upgraded"}
       </span>
@@ -1092,27 +1073,6 @@ function DNACanvas() {
 
 function HeroSection({ lang, onBrowse, onSearch }) {
   const [q, setQ] = useState("");
-  const heroTitleRef = useRef(null);
-  const heroColRef = useRef(null);
-  useEffect(() => {
-    const pt = new Pretext();
-    const apply = () => {
-      const el = heroTitleRef.current;
-      const col = heroColRef.current;
-      if (!el || !col) return;
-      const colW = col.getBoundingClientRect().width;
-      if (!colW) return;
-      // Fit the longer line to ~90% of the left column width
-      const text = lang === "zh" ? "助力科研前行" : "Faster Progress";
-      const font = "800 {S}px Fustat";
-      const px = pt.fitSize(text, font, 32, 120, colW * 0.90) ?? 52;
-      el.style.fontSize = px + "px";
-    };
-    apply();
-    const ro = new ResizeObserver(apply);
-    if (heroColRef.current) ro.observe(heroColRef.current);
-    return () => ro.disconnect();
-  }, [lang]);
   const doSearch = () => { if (q.trim()) onSearch(q.trim()); };
   return (
     <div style={{ background: "transparent", position: "relative", overflow: "hidden", minHeight: 580, display: "flex", alignItems: "center" }}>
@@ -1124,15 +1084,15 @@ function HeroSection({ lang, onBrowse, onSearch }) {
       <div className="bsd-hero-grid" style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 40px 80px", position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", width: "100%" }}>
 
         {/* ── LEFT: Content ── */}
-        <div ref={heroColRef}>
+        <div>
           {/* Social proof */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(200,16,46,0.15)", borderRadius: 24, padding: "6px 16px", marginBottom: 28, boxShadow: "0 2px 12px rgba(200,16,46,0.08)" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(200,16,46,0.15)", borderRadius: 24, padding: "6px 16px", marginBottom: 28, boxShadow: "0 2px 12px rgba(15,23,42,0.06)" }}>
             <span style={{ fontSize: 13 }}>{"★★★★★".split("").map((s,i)=><span key={i} style={{color:"#FF801E"}}>{s}</span>)}</span>
-            <span style={{ fontSize: 12, color: "#666", fontFamily: T.font }}>{lang === "zh" ? "已服务 200+ 家科研机构" : "Trusted by 200+ Research Institutions"}</span>
+            <span style={{ fontSize: 12, color: T.textSecondary, fontFamily: T.font }}>{lang === "zh" ? "已服务 200+ 家科研机构" : "Trusted by 200+ Research Institutions"}</span>
           </div>
 
           {/* Headline */}
-          <h1 ref={heroTitleRef} style={{ fontFamily: T.fontHead, fontSize: "52px", fontWeight: 800, lineHeight: 1.05, letterSpacing: -2, margin: "0 0 20px", color: "#0D0D0D" }}>
+          <h1 style={{ fontFamily: T.fontHead, fontSize: "clamp(36px, 4.8vw, 62px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -1.5, margin: "0 0 20px", color: "#0D0D0D" }}>
             {lang === "zh"
               ? <><span style={{ color: T.red }}>降本增效</span><br />助力科研前行</>
               : <><span style={{ color: T.red }}>Smarter Science,</span><br />Faster Progress</>}
@@ -1227,6 +1187,8 @@ function SolutionsSection({ lang }) {
         ? [[Zap,"节能","制冷节能30%以上，降低PUE 0.1-0.4"],[Clock,"节时","一体化设计，安装方便，大大缩短施工时间"],[Wrench,"维护方便","片式冷凝器模组化设计，方便清洗维护"]]
         : [[Zap,"Energy","30%+ cooling savings, PUE reduced 0.1-0.4"],[Clock,"Fast Install","Integrated design, quick on-site deployment"],[Wrench,"Easy Maintenance","Modular plate condenser, easy to clean"]],
       scenes: lang === "zh" ? ["数据中心机房","数据传输机房","云机房","企业数据中心"] : ["Data Centers","Telecom Rooms","Cloud Rooms","Enterprise DC"],
+      image: "/solutions/sol-1-idc.webp",
+      imageAlt: lang === "zh" ? "上海电信IDC机房空调节能机组改造案例实景，总体节能率超40%" : "Shanghai Telecom IDC server room AC energy saver retrofit case study, 40%+ energy savings",
       cases: lang === "zh" ? [{name:"上海电信机房",rate:"40%"}] : [{name:"Shanghai Telecom",rate:"40%"}],
       stats: [{v:"30",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"0.4",s:"",l:lang==="zh"?"PUE降低":"PUE Drop"},{v:"40",s:"%",l:lang==="zh"?"案例最高":"Best Case"}],
     },
@@ -1239,6 +1201,8 @@ function SolutionsSection({ lang }) {
         ? [[Zap,"节能","能效远超国家一级标准，节能15%-30%"],[Droplets,"节水","蒸发冷却技术，耗水量远低于传统冷却塔"],[Layers,"节地","紧凑设计，占地面积小"]]
         : [[Zap,"Energy","Far exceeds Class 1 standard, 15-30% savings"],[Droplets,"Water","Evaporative cooling uses far less water"],[Layers,"Space","Compact design, small footprint"]],
       scenes: lang === "zh" ? ["商场","GMP厂房","酒店","医院","办公楼","实验室"] : ["Malls","GMP Plants","Hotels","Hospitals","Offices","Labs"],
+      image: "/solutions/sol-2-heatpump.webp",
+      imageAlt: lang === "zh" ? "片式蒸发冷高效热泵机组产业园与光电厂节电30%-40%实景案例" : "Evaporative heat pump system industrial park and optics plant case studies, 30-40% energy savings",
       cases: lang === "zh" ? [{name:"江苏某光电厂",rate:"30%"},{name:"湖北某产业园",rate:"40%"}] : [{name:"Jiangsu Optics",rate:"30%"},{name:"Hubei Park",rate:"40%"}],
       stats: [{v:"4.5",s:"+",l:"SCOP"},{v:"30",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"15",s:"%",l:lang==="zh"?"节水":"Water Saved"}],
     },
@@ -1251,6 +1215,8 @@ function SolutionsSection({ lang }) {
         ? [[Zap,"节能","设备节能15%以上"],[Package,"安装便捷","分段式设计，现场接水电即可使用"],[Activity,"通用性强","适用于任何多联机品牌"]]
         : [[Zap,"Energy","15%+ device energy savings"],[Package,"Easy Install","Modular, connect water & power on-site"],[Activity,"Universal","Works with any VRF brand"]],
       scenes: lang === "zh" ? ["GMP厂房","办公楼","实验室"] : ["GMP Plants","Offices","Labs"],
+      image: "/solutions/sol-3-vrf.webp",
+      imageAlt: lang === "zh" ? "多联机预冷节能器办公楼与总部大楼改造前后实景对比，节电20%-23%" : "VRF pre-cooling energy saver before-and-after retrofit comparison, 20-23% energy savings",
       cases: lang === "zh" ? [{name:"浙江某办公楼",rate:"23%"},{name:"美团总部大楼",rate:"20%"}] : [{name:"Zhejiang Office",rate:"23%"},{name:"Meituan HQ",rate:"20%"}],
       stats: [{v:"15",s:"%+",l:lang==="zh"?"节能率":"Savings"},{v:"23",s:"%",l:lang==="zh"?"案例最高":"Best Case"},{v:"0",s:"",l:lang==="zh"?"停机改造":"Downtime"}],
     },
@@ -1263,6 +1229,8 @@ function SolutionsSection({ lang }) {
         ? [[Activity,"密度小","充注量仅为R22的40%，降低压缩机负荷"],[Zap,"效率高","压力低，提高压缩机效率"],[ShieldCheck,"热损少","吸排气温度低，降低不可逆热损失"]]
         : [[Activity,"Low Density","40% charge of R22, reduces compressor load"],[Zap,"Efficient","Lower pressure, higher compressor efficiency"],[ShieldCheck,"Less Loss","Lower temps reduce irreversible heat loss"]],
       scenes: lang === "zh" ? ["家用空调","风冷模块机","冷藏冷冻","中央冷水机组","冰水机","热泵"] : ["Home AC","Air-cooled Modules","Refrigeration","Chillers","Ice Machines","Heat Pumps"],
+      image: "/solutions/sol-4-r436c.webp",
+      imageAlt: lang === "zh" ? "R436C高效节能制冷剂适用范围与权威机构检测报告" : "R436C high-efficiency refrigerant application scope and certified test reports",
       cases: lang === "zh" ? [{name:"宝钢（三菱）",rate:"33.3%"},{name:"同济大学（日立）",rate:"24.3%"},{name:"中国航天（美的）",rate:"22%"}] : [{name:"Baosteel",rate:"33.3%"},{name:"Tongji Univ",rate:"24.3%"},{name:"CASC",rate:"22%"}],
       stats: [{v:"40",s:"%",l:lang==="zh"?"用量节省":"Less Charge"},{v:"33",s:"%",l:lang==="zh"?"案例最高":"Best Case"},{v:"0",s:"",l:"ODP"}],
     },
@@ -1275,6 +1243,8 @@ function SolutionsSection({ lang }) {
         ? [[Zap,"主机节能","中温水主机节能12%以上"],[Droplets,"减少除湿","末端减少无效除湿，提升舒适度"],[Wrench,"系统简单","故障率低，减少维修费"]]
         : [[Zap,"Chiller","12%+ chiller energy savings"],[Droplets,"Less Dehum","Reduces unnecessary dehumidification"],[Wrench,"Simple","Low failure rate, less maintenance"]],
       scenes: lang === "zh" ? ["商场","酒店","医院","办公楼"] : ["Malls","Hotels","Hospitals","Offices"],
+      image: "/solutions/sol-5-deltat.webp",
+      imageAlt: lang === "zh" ? "中温水大温差机组苏州企业大楼机房改造实景，节电率达25.5%" : "Medium-temp large delta-T system Suzhou enterprise retrofit case study, 25.5% energy savings",
       cases: lang === "zh" ? [{name:"苏州某企业大楼",rate:"25.5%"}] : [{name:"Suzhou Enterprise",rate:"25.5%"}],
       stats: [{v:"20",s:"%",l:lang==="zh"?"系统节能":"Sys Savings"},{v:"12",s:"%+",l:lang==="zh"?"主机节能":"Chiller"},{v:"25.5",s:"%",l:lang==="zh"?"案例最高":"Best Case"}],
     },
@@ -1360,6 +1330,15 @@ function SolutionsSection({ lang }) {
                   ))}
                 </div>
               </GlassCard>
+
+              {sol.image && (
+                <GlassCard hover={false} style={{ padding: "14px", marginBottom: 16 }}>
+                  <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${T.border}`, background: "#fff" }}>
+                    <img src={sol.image} alt={sol.imageAlt} loading="lazy" decoding="async" style={{ width: "100%", height: "auto", display: "block" }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: T.textMuted, marginTop: 8, textAlign: "center" }}>{sol.imageAlt}</div>
+                </GlassCard>
+              )}
 
               <GlassCard hover={false} style={{ padding: "24px" }}>
                 <h4 style={{ fontSize: 14, fontWeight: 700, color: T.navy, margin: "0 0 14px", letterSpacing: 0.3, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1765,28 +1744,9 @@ function PeptideQCSection({ lang, onContact, onProducts }) {
 /* ─── Product Map Section ──────────────────────────────────────────────────── */
 function ProductMapSection({ lang, onCategoryClick }) {
   const T2 = { dark: "#111", sub: "#555" };
-  const mapTitleRef = useRef(null);
-  const mapContainerRef = useRef(null);
-  useEffect(() => {
-    const pt = new Pretext();
-    const apply = () => {
-      const el = mapTitleRef.current;
-      const wrap = mapContainerRef.current;
-      if (!el || !wrap) return;
-      const w = wrap.getBoundingClientRect().width;
-      if (!w) return;
-      const text = lang === "zh" ? "产品分类矩阵" : "Product Category Map";
-      const px = pt.fitSize(text, "800 {S}px Fustat", 32, 140, w * 0.48) ?? 40;
-      el.style.fontSize = px + "px";
-    };
-    apply();
-    const ro = new ResizeObserver(apply);
-    if (mapContainerRef.current) ro.observe(mapContainerRef.current);
-    return () => ro.disconnect();
-  }, [lang]);
   return (
     <section style={{ minHeight: "100vh", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", padding: "100px 24px 60px", boxSizing: "border-box" }}>
-      <div ref={mapContainerRef} style={{ width: "100%", maxWidth: 1500, display: "flex", flexDirection: "column" }}>
+      <div style={{ width: "100%", maxWidth: 1500, display: "flex", flexDirection: "column" }}>
         {/* Header */}
         <div style={{ marginBottom: 32, maxWidth: 680 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(200,16,46,0.07)", border: "1px solid rgba(200,16,46,0.18)", borderRadius: 20, padding: "5px 14px", marginBottom: 14 }}>
@@ -1794,7 +1754,7 @@ function ProductMapSection({ lang, onCategoryClick }) {
               {lang === "zh" ? "LIVE · 实时布局" : "LIVE · Real-time Layout"}
             </span>
           </div>
-          <h2 ref={mapTitleRef} style={{ fontSize: 40, fontFamily: "Fustat, sans-serif", fontWeight: 800, color: T2.dark, margin: 0, lineHeight: 1.15, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: "clamp(28px, 3.6vw, 44px)", fontFamily: "Fustat, sans-serif", fontWeight: 800, color: T2.dark, margin: 0, lineHeight: 1.15, letterSpacing: -0.5 }}>
             {lang === "zh" ? "产品分类矩阵" : "Product Category Map"}
           </h2>
           <p style={{ marginTop: 10, fontSize: 15, color: T2.sub, lineHeight: 1.6, fontFamily: "Inter, sans-serif", margin: "10px 0 0" }}>
@@ -1995,7 +1955,7 @@ function Footer({ lang, onSelectCat, onNavigate }) {
 }
 
 // ═══════ PRODUCT CATALOG ═══════
-function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onViewDetail, products, productIndex, imageMap, loading }) {
+function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onViewDetail, products, productIndex, imageMap, loading, inquiryCart = [], onToggleCart }) {
   const [activeCat, setActiveCat] = useState(initialCat);
   const [activeSub, setActiveSub] = useState(null);
   const [page, setPage] = useState(0);
@@ -2081,6 +2041,7 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
             {pageProducts.map((p, i) => {
               const imgUrl = resolveProductImage(imageMap, p.sku, "compressed");
               const pUrl = productIndex && productPath(p, productIndex);
+              const inCart = inquiryCart.some(item => item.sku === p.sku);
               return (
                 <div key={p.sku + "-" + i} className="bsd-product-card" onClick={() => onViewDetail(p)}>
                   <div style={{ height: 158, background: "#F8FAFC", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 14, position: "relative" }}>
@@ -2105,15 +2066,18 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
                     <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 12, flex: 1 }}>
                       {tSpec(lang, p.spec) || (p.sub ? tSub(lang, p.sub) : "—")}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: `1px solid #F3F4F6` }}>
-                      <span style={{ fontSize: 11, color: T.textMuted }}>{p.brand || "Booster"}</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 10, borderTop: `1px solid #F3F4F6` }}>
+                      <button type="button" onClick={e => { e.stopPropagation(); onToggleCart?.(p); }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 7, padding: "5px 9px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, border: inCart ? "1px solid #10B981" : `1px solid ${T.border}`, background: inCart ? "#ECFDF5" : "#fff", color: inCart ? "#047857" : T.textSecondary, transition: "all 0.15s" }}>
+                        {inCart ? <><Check size={12} /> {lang === "zh" ? "已加入" : "Added"}</> : <><Plus size={12} /> {lang === "zh" ? "询价单" : "Inquiry"}</>}
+                      </button>
                       {pUrl ? (
-                        <a href={pUrl} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} style={{ fontSize: 12, fontWeight: 600, color: T.red, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          {lang === "zh" ? "查看详情" : "Details"} <ArrowRight size={13} />
+                        <a href={pUrl} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} style={{ fontSize: 12, fontWeight: 600, color: T.red, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          {lang === "zh" ? "详情" : "Details"} <ArrowRight size={13} />
                         </a>
                       ) : (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: T.red, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          {lang === "zh" ? "查看详情" : "Details"} <ArrowRight size={13} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.red, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          {lang === "zh" ? "详情" : "Details"} <ArrowRight size={13} />
                         </span>
                       )}
                     </div>
@@ -2148,9 +2112,22 @@ function ProductCatalogSection({ lang, initialCat, search, onSearchChange, onVie
                   </td>
                   <td style={tdS}><span style={{ fontSize: 11, background: "#F3F4F6", padding: "3px 8px", borderRadius: 6, color: T.textSecondary, fontWeight: 500 }}>{tCat(lang, p.cat)}</span></td>
                   <td style={tdS}><span style={{ fontSize: 12, color: T.textSecondary }}>{tSpec(lang, p.spec)||"—"}</span></td>
-                  <td style={tdS}>{productIndex && productPath(p, productIndex)
-                    ? <a href={productPath(p, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
-                    : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}</td>
+                  <td style={tdS}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {(() => {
+                        const inCart = inquiryCart.some(item => item.sku === p.sku);
+                        return (
+                          <button type="button" onClick={e => { e.stopPropagation(); onToggleCart?.(p); }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 3, borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, border: inCart ? "1px solid #10B981" : `1px solid ${T.border}`, background: inCart ? "#ECFDF5" : "#fff", color: inCart ? "#047857" : T.textSecondary }}>
+                            {inCart ? <Check size={12} /> : <Plus size={12} />} {lang === "zh" ? (inCart ? "已加入" : "询价单") : (inCart ? "Added" : "List")}
+                          </button>
+                        );
+                      })()}
+                      {productIndex && productPath(p, productIndex)
+                        ? <a href={productPath(p, productIndex)} onClick={e=>{e.stopPropagation();if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onViewDetail(p);}}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, display:"inline-block", borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font, textDecoration:"none"}}>{lang==="zh"?"详情":"Details"}</a>
+                        : <button onClick={e=>{e.stopPropagation();onViewDetail(p)}} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:T.font}}>{lang==="zh"?"详情":"Details"}</button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -2301,11 +2278,140 @@ function InquiryModal({ lang, product: p, mode = "quote", onClose }) {
   );
 }
 
+// ═══════ 批量多货号询价单 Modal ═══════
+function BatchInquiryModal({ lang, cart, onUpdateQty, onRemove, onClear, onClose }) {
+  const zh = lang === "zh";
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", note: "" });
+  const [status, setStatus] = useState("idle");
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!cart.length) return;
+    if (!form.name.trim()) { alert(zh ? "请填写姓名" : "Please enter your name"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { alert(zh ? "请输入正确的邮箱" : "Invalid email"); return; }
+    setStatus("sending");
+    const lines = cart.map((item, idx) =>
+      `${idx + 1}. 货号：${item.sku} | 名称：${item.name || "—"} | 规格：${item.spec || "—"} | 数量：${item.qty || "1"}`
+    ).join("\n");
+    const message = `【多货号批量询价清单（共 ${cart.length} 项）】\n${lines}${form.phone ? "\n联系电话：" + form.phone : ""}${form.note ? "\n备注：" + form.note : ""}`;
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, company: form.company || form.phone || "—", message }),
+      });
+      if (res.ok) {
+        setStatus("success");
+        onClear?.();
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      const subject = encodeURIComponent(`【批量询价】共 ${cart.length} 个货号`);
+      const body = encodeURIComponent(`${message}\n\n联系人：${form.name}\n邮箱：${form.email}`);
+      window.open(`mailto:service@tflabservice.com?subject=${subject}&body=${body}`);
+      setStatus("success");
+      onClear?.();
+    }
+  };
+
+  const iStyle = { width: "100%", border: `1.5px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontFamily: "inherit", outline: "none", color: T.textPrimary, background: "#F8FAFC", boxSizing: "border-box" };
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div style={{ maxHeight: "88vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: "linear-gradient(135deg,#9B0023,#C8102E)", padding: "20px 24px 16px", position: "relative", flexShrink: 0 }}>
+          <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "rgba(255,255,255,0.2)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          <h2 style={{ color: "#fff", margin: 0, fontSize: 18, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+            <ShoppingCart size={18} /> {zh ? `多货号询价清单（${cart.length}）` : `Batch Inquiry List (${cart.length})`}
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.85)", margin: "4px 0 0", fontSize: 12 }}>
+            {zh ? "一次提交多个货号，1 个工作日内为您发送完整报价单" : "Submit multiple SKUs at once for a consolidated quotation"}
+          </p>
+        </div>
+
+        <div style={{ padding: "18px 24px 24px", overflowY: "auto" }}>
+          {status === "success" ? (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><CheckCircle2 size={46} color="#10B981" /></div>
+              <h3 style={{ color: T.textPrimary, margin: "0 0 8px", fontSize: 18 }}>{zh ? "批量询价单已发送！" : "Batch Inquiry Sent!"}</h3>
+              <p style={{ color: T.textSecondary, fontSize: 14, margin: "0 0 20px" }}>{zh ? "我们的销售工程师将在 1 个工作日内整理正式报价单发至您的邮箱。" : "Our sales engineer will send a formal quote within 1 business day."}</p>
+              <button onClick={onClose} className="lg-btn" style={{ ...LG.primary, borderRadius: 10, padding: "10px 28px", fontSize: 14, fontFamily: "inherit" }}>
+                {zh ? "关闭" : "Close"}
+              </button>
+            </div>
+          ) : cart.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "32px 0", color: T.textMuted, fontSize: 14 }}>
+              {zh ? "询价清单为空，请先在产品中心点击「+ 询价单」添加产品。" : "Your inquiry list is empty. Add products from the catalog first."}
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18, maxHeight: 210, overflowY: "auto", paddingRight: 2 }}>
+                {cart.map(item => (
+                  <div key={item.sku} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#F8FAFC", border: `1px solid ${T.border}`, borderRadius: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <code style={{ fontSize: 11, fontWeight: 600, color: T.red, background: T.redLight, padding: "1px 6px", borderRadius: 4 }}>{item.sku}</code>
+                        {item.spec && <span style={{ fontSize: 11, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tSpec(lang, item.spec)}</span>}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: T.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tName(lang, item.name) || item.sku}</div>
+                    </div>
+                    <input value={item.qty} onChange={e => onUpdateQty(item.sku, e.target.value)} placeholder={zh ? "数量" : "Qty"}
+                      style={{ width: 68, border: `1px solid ${T.border}`, borderRadius: 7, padding: "5px 8px", fontSize: 12, textAlign: "center", background: "#fff", color: T.textPrimary, outline: "none" }} />
+                    <button type="button" onClick={() => onRemove(item.sku)} aria-label="Remove"
+                      style={{ background: "transparent", border: "none", color: T.textMuted, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bsd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <input value={form.name} onChange={e => set("name", e.target.value)} placeholder={zh ? "姓名 *" : "Name *"} style={iStyle} />
+                <input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder={zh ? "联系电话" : "Phone"} style={iStyle} />
+              </div>
+              <div className="bsd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+                <input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder={zh ? "接收报价邮箱 *" : "Email *"} style={iStyle} />
+                <input value={form.company} onChange={e => set("company", e.target.value)} placeholder={zh ? "单位 / 公司名称" : "Organization"} style={iStyle} />
+              </div>
+              <textarea rows={2} value={form.note} onChange={e => set("note", e.target.value)} placeholder={zh ? "补充需求（如期望货期、是否需 CoA/样品等）" : "Notes (lead time, CoA, sample request...)"} style={{ ...iStyle, marginTop: 10, resize: "vertical" }} />
+
+              {status === "error" && <p style={{ color: T.red, fontSize: 13, margin: "8px 0 0" }}>{zh ? "发送失败，请稍后重试或邮件联系 service@tflabservice.com" : "Send failed. Please email service@tflabservice.com"}</p>}
+
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <button type="button" onClick={onClear} style={{ ...LG.ghost, borderRadius: 10, padding: "11px 14px", fontSize: 13, fontFamily: "inherit" }}>
+                  {zh ? "清空" : "Clear"}
+                </button>
+                <button type="button" onClick={handleSubmit} disabled={status === "sending"} className="lg-btn"
+                  style={{ ...LG.primary, flex: 1, borderRadius: 10, padding: "11px 16px", fontSize: 14, fontFamily: "inherit", opacity: status === "sending" ? 0.7 : 1 }}>
+                  {status === "sending" ? (zh ? "提交中..." : "Submitting...") : (zh ? `一键提交 ${cart.length} 项询价` : `Submit ${cart.length} Items`)}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
 // ═══════ PRODUCT DETAIL ═══════
-function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, productIndex, imageMap }) {
+function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, productIndex, imageMap, inquiryCart = [], onToggleCart }) {
   const meta = CAT_META[p.cat]||{icon:"📦",color:"#F5F5F5"};
   const [tab, setTab] = useState(0);
+  const [openFaq, setOpenFaq] = useState(0);
   const [inquiryMode, setInquiryMode] = useState(null); // null | "quote" | "datasheet"
+  const inCart = inquiryCart.some(item => item.sku === p.sku);
+  const faqs = lang === "zh" ? [
+    { q: `${p.name || p.sku}（货号 ${p.sku}）是否提供产品说明书（Datasheet）和质检报告（CoA）？`, a: `提供。博仕达生物所有${p.cat || "实验室"}产品均支持随货或在线索取电子版产品说明书与批次质检报告（CoA），点击上方「产品说明书」即可申请。` },
+    { q: "该产品是否支持国产化替代验证与样品试用？", a: "支持。针对高校、科研院所及生物医药企业，我们提供技术选型对接及常用型号的试用评估支持，协助完成降本增效与供应链国产化替代。" },
+    { q: "常规货期、储存运输条件及开票方式如何？", a: "常规现货产品 1–3 个工作日内发货，按产品特性采用常温或 2–8°C / -20°C 冷链运输；支持对公转账及增值税专用发票/普通发票。" },
+    { q: "需要同时采购多个货号如何快速询价？", a: "点击「加入询价单」可将本产品及目录中其他所需货号加入右下角询价清单，一次性打包提交即可获取完整正式报价单。" },
+  ] : [
+    { q: `Are Datasheet and CoA available for ${p.sku}?`, a: "Yes. Electronic Datasheets and batch-specific Certificates of Analysis (CoA) are available upon request via the Datasheet button above." },
+    { q: "Do you support domestic substitution evaluation and sample trials?", a: "Yes. We provide technical matching and sample evaluation support for universities, research institutes, and biopharma QC labs." },
+    { q: "What are the lead time, shipping, and invoicing terms?", a: "In-stock items ship within 1–3 business days under ambient or 2–8°C / -20°C cold-chain logistics. Corporate transfers and VAT invoices are supported." },
+  ];
   const tabs = lang==="zh"?["产品描述","技术参数","使用说明","储存运输"]:["Description","Specs","Instructions","Storage"];
   const related = useMemo(() => (products || []).filter(r => r.sku!==p.sku && r.cat===p.cat && r.sub===p.sub).slice(0,6), [products, p.sku,p.cat,p.sub]);
   return (
@@ -2331,6 +2437,9 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, p
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button onClick={() => setInquiryMode("quote")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.primary, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font, display:"inline-flex", alignItems:"center", gap:7}}><Mail size={15} /> {lang==="zh"?"立即询价":"Quote"}</button>
               <button onClick={() => setInquiryMode("datasheet")} className="lg-btn" onMouseEnter={e=>LG.hoverOn(e.currentTarget)} onMouseLeave={e=>LG.hoverOff(e.currentTarget)} style={{...LG.ghost, borderRadius:8, padding:"10px 22px", fontSize:13, fontFamily:T.font, display:"inline-flex", alignItems:"center", gap:7}}><FileText size={15} /> {lang==="zh"?"产品说明书":"Datasheet"}</button>
+              <button type="button" onClick={() => onToggleCart?.(p)} style={{ borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 600, fontFamily: T.font, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, border: inCart ? "1px solid #10B981" : `1px solid ${T.border}`, background: inCart ? "#ECFDF5" : "#fff", color: inCart ? "#047857" : T.textPrimary, transition: "all 0.15s" }}>
+                {inCart ? <><Check size={15} /> {lang === "zh" ? "已在询价单" : "In Inquiry List"}</> : <><Plus size={15} /> {lang === "zh" ? "加入询价单" : "Add to Inquiry List"}</>}
+              </button>
             </div>
           </div>
         </div>
@@ -2346,6 +2455,33 @@ function ProductDetailView({ product: p, lang, onBack, onViewDetail, products, p
           </div>
         </div>
       </GlassCard>
+
+      {/* 常见采购问题 FAQ */}
+      <GlassCard hover={false} style={{ marginTop: 24, padding: "22px 26px" }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: T.textPrimary, margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 }}>
+          <HelpCircle size={18} color={T.red} /> {lang === "zh" ? "常见采购问题（FAQ）" : "Frequently Asked Questions"}
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {faqs.map((item, idx) => {
+            const isOpen = openFaq === idx;
+            return (
+              <div key={idx} style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden", background: isOpen ? "#F8FAFC" : "#fff" }}>
+                <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                  style={{ width: "100%", textAlign: "left", padding: "12px 16px", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontFamily: T.font, fontSize: 14, fontWeight: 600, color: T.textPrimary }}>
+                  <span>{item.q}</span>
+                  <ChevronDown size={16} color={T.textMuted} style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </button>
+                {isOpen && (
+                  <div style={{ padding: "0 16px 14px", fontSize: 13, color: T.textSecondary, lineHeight: 1.75 }}>
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+
       {related.length > 0 && <div style={{ marginTop: 28 }}>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: T.textPrimary, marginBottom: 14 }}>{lang==="zh"?"相关产品":"Related"}</h3>
         <div className="bsd-related-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
@@ -2424,6 +2560,33 @@ export default function BoosterHomepage() {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
+
+  // ── Multi-SKU Inquiry Cart state ──
+  const [inquiryCart, setInquiryCart] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bsd_inquiry_cart") || "[]"); } catch { return []; }
+  });
+  const [showCartModal, setShowCartModal] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem("bsd_inquiry_cart", JSON.stringify(inquiryCart)); } catch { /* ignore quota */ }
+  }, [inquiryCart]);
+
+  const toggleCartItem = useCallback((product) => {
+    if (!product?.sku) return;
+    setInquiryCart(prev => {
+      if (prev.some(item => item.sku === product.sku)) {
+        return prev.filter(item => item.sku !== product.sku);
+      }
+      return [...prev, { sku: product.sku, name: product.name || "", spec: product.spec || "", cat: product.cat || "", brand: product.brand || "", qty: "1" }];
+    });
+  }, []);
+  const updateCartQty = useCallback((sku, qty) => {
+    setInquiryCart(prev => prev.map(item => item.sku === sku ? { ...item, qty } : item));
+  }, []);
+  const removeCartItem = useCallback((sku) => {
+    setInquiryCart(prev => prev.filter(item => item.sku !== sku));
+  }, []);
+  const clearCart = useCallback(() => setInquiryCart([]), []);
 
   // ── Auth state ──
   const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem("bsd_user") || "null"); } catch { return null; } });
@@ -2554,8 +2717,8 @@ export default function BoosterHomepage() {
         <ContactSection lang={lang} />
       </>}
 
-      {section === "products" && !detailProduct && <ProductCatalogSection lang={lang} initialCat={productCat} search={search} onSearchChange={setSearch} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} loading={catalogLoading} />}
-      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => goProducts(null)} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} />}
+      {section === "products" && !detailProduct && <ProductCatalogSection lang={lang} initialCat={productCat} search={search} onSearchChange={setSearch} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} loading={catalogLoading} inquiryCart={inquiryCart} onToggleCart={toggleCartItem} />}
+      {section === "products" && detailProduct && <ProductDetailView product={detailProduct} lang={lang} onBack={() => goProducts(null)} onViewDetail={goDetail} products={catalog?.products} productIndex={catalog?.index} imageMap={catalog?.imageMap} inquiryCart={inquiryCart} onToggleCart={toggleCartItem} />}
       {section === "notfound" && <main style={{ maxWidth: 1000, margin: "48px auto", padding: 32 }}><h1>页面未找到</h1><a href="/">返回首页</a></main>}
       {section === "solutions" && <><SolutionsSection lang={lang} /><StatsBar lang={lang} /></>}
       {section === "peptideqc" && <PeptideQCSection lang={lang} onContact={() => go("contact")} onProducts={() => go("products")} />}
@@ -2564,6 +2727,30 @@ export default function BoosterHomepage() {
 
       <TrustedBy lang={lang} />
       <Footer lang={lang} onSelectCat={goProducts} onNavigate={go} />
+
+      {/* ── Floating Multi-SKU Inquiry Cart Button ── */}
+      {inquiryCart.length > 0 && (
+        <button type="button" onClick={() => setShowCartModal(true)} className="lg-btn"
+          style={{ ...LG.primary, position: "fixed", right: 22, bottom: 24, zIndex: 90, borderRadius: 999, padding: "12px 20px", fontSize: 13, fontFamily: T.font, display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 12px 32px rgba(200,16,46,0.34)" }}>
+          <ShoppingCart size={16} />
+          <span>{lang === "zh" ? "询价清单" : "Inquiry List"}</span>
+          <span style={{ background: "#fff", color: T.red, borderRadius: 999, minWidth: 22, height: 22, padding: "0 6px", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            {inquiryCart.length}
+          </span>
+        </button>
+      )}
+
+      {/* ── Batch Inquiry Modal ── */}
+      {showCartModal && (
+        <BatchInquiryModal
+          lang={lang}
+          cart={inquiryCart}
+          onUpdateQty={updateCartQty}
+          onRemove={removeCartItem}
+          onClear={clearCart}
+          onClose={() => setShowCartModal(false)}
+        />
+      )}
 
       {/* ── Auth Modals ── */}
       {showLogin && <LoginModal lang={lang} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} onSwitchRegister={() => { setShowLogin(false); setShowRegister(true); }} />}

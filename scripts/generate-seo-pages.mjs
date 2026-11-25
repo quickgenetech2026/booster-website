@@ -150,6 +150,35 @@ export function buildProductPage(template, product, site = SITE, options = {}) {
         .join('')}</ul></section>`
     : '';
 
+  const faqItems = [
+    {
+      q: `${name}（货号 ${product.sku}）是否提供产品说明书（Datasheet）和质检报告（CoA）？`,
+      a: `提供。博仕达生物所有${product.cat || '实验室'}产品均支持随货或在线索取电子版产品说明书与批次质检报告（CoA），点击页面「产品说明书」即可申请。`,
+    },
+    {
+      q: `该产品是否支持国产化替代验证与样品试用？`,
+      a: `支持。针对高校、科研院所及生物医药企业，我们提供技术选型对接及常用型号的试用评估支持，协助完成降本增效与供应链国产化替代。`,
+    },
+    {
+      q: `常规货期、储存运输条件及开票方式如何？`,
+      a: `常规现货产品 1–3 个工作日内发货，按产品特性采用常温或 2–8°C / -20°C 冷链运输；支持对公转账及增值税专用发票/普通发票。`,
+    },
+  ];
+
+  const faqHtml = `<section><h2>常见采购问题</h2>${faqItems
+    .map((item) => `<details><summary>${escapeHtml(item.q)}</summary><p>${escapeHtml(item.a)}</p></details>`)
+    .join('')}</section>`;
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  };
+
   const summary = [
     '<main>',
     `<nav aria-label="面包屑"><a href="/">首页</a> / <a href="/products/">产品中心</a>${product.cat ? ` / <a href="${catUrlPath}">${escapeHtml(product.cat)}</a>` : ''} / <span>${escapeHtml(product.sku)}</span></nav>`,
@@ -159,7 +188,8 @@ export function buildProductPage(template, product, site = SITE, options = {}) {
     product.brand ? `<p>品牌：${escapeHtml(product.brand)}</p>` : '',
     product.cat ? `<p>分类：${escapeHtml(product.cat)}${product.sub ? ` / ${escapeHtml(product.sub)}` : ''}</p>` : '',
     `<p>规格：${escapeHtml(product.spec || '请咨询')}</p>`,
-    `<p>${escapeHtml(product.brand || '博仕达生物')} ${escapeHtml(name)}，适用于${escapeHtml(product.cat || '实验室')}相关科研与质控应用。支持在线询价及说明书（CoA/Datasheet）索取。</p>`,
+    `<p>${escapeHtml(product.brand || '博仕达生物')} ${escapeHtml(name)}，适用于${escapeHtml(product.cat || '实验室')}相关科研与质控应用。支持在线询价、多货号批量询价及说明书（CoA/Datasheet）索取。</p>`,
+    faqHtml,
     relatedHtml,
     '</main>',
   ].join('');
@@ -207,7 +237,7 @@ export function buildProductPage(template, product, site = SITE, options = {}) {
     keywords,
     canonical: url,
     ogImage: imgUrl || undefined,
-    jsonLd: [productSchema, breadcrumbSchema],
+    jsonLd: [productSchema, breadcrumbSchema, faqSchema],
     summary,
   });
 }
@@ -279,11 +309,11 @@ export function buildStaticSectionPages(template, site = SITE) {
       '<h1>节能空调解决方案</h1>',
       '<p>临界相变 · 中温水大温差 — 节能、节水、节地、节材，助力数据中心、GMP厂房与实验室降本增效。</p>',
       '<ul>',
-      '<li><h2>机房空调节能机组</h2><p>IDC数据机房改造专用，制冷节能30%以上，降低PUE 0.1-0.4。</p></li>',
-      '<li><h2>片式蒸发冷高效热泵机组</h2><p>板管蒸发冷却技术，SCOP 4.5+ 远超国家一级能效标准。</p></li>',
-      '<li><h2>多联机预冷节能器</h2><p>外置预冷节能15%以上，分段式设计适用于各类多联机品牌。</p></li>',
-      '<li><h2>R436C高效节能制冷剂</h2><p>充注量仅为R22的40%，低压力高效率，ODP为0。</p></li>',
-      '<li><h2>中温水大温差机组</h2><p>9/17℃中温水大温差水系统，系统综合节能15-20%。</p></li>',
+      '<li><h2>机房空调节能机组</h2><p>IDC数据机房改造专用，制冷节能30%以上，降低PUE 0.1-0.4。</p><img src="/solutions/sol-1-idc.webp" alt="上海电信IDC机房空调节能机组改造案例实景，总体节能率超40%" /></li>',
+      '<li><h2>片式蒸发冷高效热泵机组</h2><p>板管蒸发冷却技术，SCOP 4.5+ 远超国家一级能效标准。</p><img src="/solutions/sol-2-heatpump.webp" alt="片式蒸发冷高效热泵机组产业园与光电厂节电30%-40%案例实景" /></li>',
+      '<li><h2>多联机预冷节能器</h2><p>外置预冷节能15%以上，分段式设计适用于各类多联机品牌。</p><img src="/solutions/sol-3-vrf.webp" alt="多联机预冷节能器办公楼与总部大楼改造前后实景对比，节电20%-23%" /></li>',
+      '<li><h2>R436C高效节能制冷剂</h2><p>充注量仅为R22的40%，低压力高效率，ODP为0。</p><img src="/solutions/sol-4-r436c.webp" alt="R436C高效节能制冷剂适用范围与权威机构检测报告" /></li>',
+      '<li><h2>中温水大温差机组</h2><p>9/17℃中温水大温差水系统，系统综合节能15-20%。</p><img src="/solutions/sol-5-deltat.webp" alt="中温水大温差机组苏州企业大楼机房改造实景，节电率达25.5%" /></li>',
       '</ul>',
       '</main>',
     ].join(''),

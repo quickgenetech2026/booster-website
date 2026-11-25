@@ -92,6 +92,7 @@ test('SEO pages include JSON-LD, breadcrumbs, and internal links', () => {
   assert.match(prodHtml, /application\/ld\+json/);
   assert.match(prodHtml, /"@type":"Product"/);
   assert.match(prodHtml, /"@type":"BreadcrumbList"/);
+  assert.match(prodHtml, /"@type":"FAQPage"/);
   assert.match(prodHtml, /href="\/products\/BSD-C\/"/);
 
   const homeHtml = buildHomePage(template, index, 'https://tflabservice.com');
